@@ -58,7 +58,25 @@ charts_and_operators:
   keda_http_add_on_source: "https://github.com/kedacore/http-add-on/releases/tag/v0.15.0"
   nvidia_device_plugin: "0.20.0"
   nvidia_device_plugin_source: "https://github.com/NVIDIA/k8s-device-plugin/releases/tag/v0.20.0"
+  nvidia_device_plugin_manifest: "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.20.0/deployments/static/nvidia-device-plugin.yml"
   status: "Pinned for future phases. Not installed or validated in Phase 0."
+
+k3s:
+  version: "v1.34.10+k3s1"
+  kubernetes: "v1.34.10"
+  install_script: "https://get.k3s.io"
+  source: "https://github.com/k3s-io/k3s/releases/tag/v1.34.10+k3s1"
+  linux_amd64_sha256: "e63a3511b2603fd1436a1ea8d228348a3b47334b45024801d41a8c0e2d22e8c4"
+  embedded_containerd: "v2.2.5-k3s2"
+  notes: |
+    Single-node k3s for the Phase 3 1.5B gate. Kubernetes 1.34 is inside
+    the 1.33–1.35 window. Install with INSTALL_K3S_VERSION, disable Traefik
+    and ServiceLB, and keep embedded containerd (not Docker). Wire NVIDIA
+    with nvidia-container-runtime-endpoint in /etc/rancher/k3s/config.yaml;
+    do not let nvidia-ctk overwrite k3s config.toml.tmpl. GPU pods and the
+    device plugin use runtimeClassName: nvidia. The device plugin kubelet
+    socket path on k3s is /var/lib/rancher/k3s/agent/kubelet/device-plugins.
+
 
 host_baseline:
   min_disk_gib: 80

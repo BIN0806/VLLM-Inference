@@ -72,6 +72,8 @@ def test_model_layer_yaml_is_tracked() -> None:
         "docs/runbooks/vast-k3s-rental.md",
         "docs/runbooks/k3s-nvidia.md",
         "docs/decisions/0006-phase3-1.5b-disk-exception.md",
+        "infra/kubernetes/overlays/vast-k3s/runtime-class-patch.yaml",
+        "infra/kubernetes/overlays/vast-k3s/nvidia-device-plugin-k3s-patch.yaml",
     ):
         assert rel in tracked, f"{rel} must be committed so clones can load profiles"
 

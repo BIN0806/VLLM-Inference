@@ -125,3 +125,18 @@ def test_write_manifests(tmp_path: Path) -> None:
     assert "secret.yaml.example" in names
     kustomize = yaml.safe_load((tmp_path / "kustomization.yaml").read_text())
     assert "secret.yaml.example" not in kustomize["resources"]
+
+
+@pytest.mark.unit
+def test_vast_k3s_overlay_sets_nvidia_runtime_class() -> None:
+    from inference_platform.paths import repo_root
+
+    overlay = repo_root() / "infra" / "kubernetes" / "overlays" / "vast-k3s"
+    kustomize = yaml.safe_load((overlay / "kustomization.yaml").read_text())
+    assert "runtime-class-patch.yaml" in kustomize["patches"][0]["path"]
+    patch = yaml.safe_load((overlay / "runtime-class-patch.yaml").read_text())
+    assert patch["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"
+    plugin = yaml.safe_load((overlay / "nvidia-device-plugin-k3s-patch.yaml").read_text())
+    assert plugin["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"
+    path = plugin["spec"]["template"]["spec"]["volumes"][0]["hostPath"]["path"]
+    assert path == "/var/lib/rancher/k3s/agent/kubelet/device-plugins"

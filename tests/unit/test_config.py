@@ -90,6 +90,10 @@ def test_pins_are_exact_and_not_latest() -> None:
     assert pins["charts_and_operators"]["nvidia_device_plugin"] == "0.20.0"
     assert pins["host_baseline"]["min_disk_gib"] == 80
     assert pins["host_baseline"]["preferred_disk_gib"] == 100
+    assert pins["k3s"]["version"] == "v1.34.10+k3s1"
+    assert "latest" not in pins["k3s"]["version"]
+    assert pins["k3s"]["install_script"] == "https://get.k3s.io"
+    assert pins["k3s"]["linux_amd64_sha256"]
 
 
 @pytest.mark.unit
