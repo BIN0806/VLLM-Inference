@@ -17,6 +17,19 @@ def test_authoring_profile_does_not_require_gpu() -> None:
 
 
 @pytest.mark.unit
+def test_vast_two_gpu_is_native_tp_not_ray() -> None:
+    config = load_profile("vast-two-gpu")
+    assert config.profile.provider == "vast"
+    assert config.compute is not None
+    assert config.compute.id == "multi-gpu-tp"
+    assert config.tensor_parallel_size == 2
+    assert config.pipeline_parallel_size == 1
+    assert config.distributed_executor_backend == "mp"
+    assert config.model.model_id == "Qwen/Qwen3.5-9B"
+    assert config.model.revision == "c202236235762e1c871ad0ccb60c8ee5ba337b9a"
+
+
+@pytest.mark.unit
 def test_vast_single_gpu_uses_9b_override() -> None:
     config = load_profile("vast-single-gpu")
     assert config.profile.provider == "vast"

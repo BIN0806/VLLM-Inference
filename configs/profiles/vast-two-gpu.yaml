@@ -1,0 +1,16 @@
+id: vast-two-gpu
+provider: vast
+compute: multi-gpu-tp
+model: qwen3.5-9b
+fallback_model: qwen2.5-1.5b-instruct-awq
+serving: defaults
+workload: dev-smoke
+gpu_required: true
+remote_required: true
+hardware_source: env-and-discovery
+notes: |
+  Phase 2A candidate: native same-host TP=2 with executor backend mp.
+  Not Ray. One physical host. Do not treat this as multi-node.
+  Proposed overrides: max_model_len=8192, max_num_seqs=2,
+  gpu_memory_utilization=0.90, HF_HUB_DISABLE_XET=1, enforce-eager if
+  12 GiB headroom requires it. Discover hardware at runtime.
