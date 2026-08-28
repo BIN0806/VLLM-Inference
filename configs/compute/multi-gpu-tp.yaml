@@ -1,0 +1,15 @@
+id: multi-gpu-tp
+description: One complete replica sharded across multiple GPUs with tensor parallelism.
+gpus_per_replica: 2
+tensor_parallel_size: 2
+pipeline_parallel_size: 1
+distributed_executor_backend: mp
+replica_count: 1
+scaling_unit: complete-replica
+horizontal_scaling: false
+requires_nodes: 1
+notes: |
+  Tensor parallelism is a model-fit strategy for one replica. It is not
+  request-level horizontal scaling. GPU count must be at least
+  tensor_parallel_size * pipeline_parallel_size. Prefer sufficient
+  intra-node interconnect. Do not scale individual TP ranks.

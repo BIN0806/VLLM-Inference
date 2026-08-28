@@ -1,0 +1,13 @@
+id: ray-single-host
+description: vLLM Ray distributed executor on one physical host. Proves backend compatibility, not multi-node.
+gpus_per_replica: 2
+tensor_parallel_size: 2
+pipeline_parallel_size: 1
+distributed_executor_backend: ray
+replica_count: 1
+scaling_unit: complete-replica
+horizontal_scaling: false
+requires_nodes: 1
+notes: |
+  A single multi-GPU host using Ray is not a multi-node Ray cluster.
+  Do not add Ray to the single-GPU path merely to satisfy a checklist.

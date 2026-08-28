@@ -1,0 +1,18 @@
+id: k8s-replica-zero
+description: HTTP scale-to-zero for complete vLLM replicas behind a durable interceptor.
+gpus_per_replica: 1
+tensor_parallel_size: 1
+pipeline_parallel_size: 1
+distributed_executor_backend: mp
+replica_count: 0
+min_replicas: 0
+max_replicas: null
+scaling_unit: complete-replica
+horizontal_scaling: true
+scaler: keda-http-addon
+requires_durable_interceptor: true
+status: later-profile
+notes: |
+  vLLM Prometheus metrics disappear when no replica exists, so they cannot
+  wake a zero-replica service. The KEDA HTTP Add-on interceptor (or an
+  explicitly approved equivalent) must remain available. Later profile only.

@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install authoring dependencies
+        run: uv sync --python 3.12 --extra dev
+      - name: Ruff
+        run: |
+          uv run ruff format --check src tests scripts benchmarks
+          uv run ruff check src tests scripts benchmarks
+      - name: Unit tests
+        run: uv run pytest tests/unit -m unit
+      - name: Config YAML parse
+        run: uv run python -c "from pathlib import Path; import yaml; root=Path('configs');
+[yaml.safe_load(p.read_text()) for p in root.rglob('*.yaml')]"
+      - name: Preflight authoring
+        run: uv run python -m inference_platform.preflight --profile authoring

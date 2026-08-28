@@ -1,0 +1,12 @@
+id: authoring
+provider: local
+compute: null
+model: qwen2.5-1.5b-instruct-awq
+serving: defaults
+workload: dev-smoke
+gpu_required: false
+remote_required: false
+notes: |
+  macOS or other authoring workstation. Runs documentation, formatting,
+  linting, type checking, and offline unit tests. Does not execute CUDA or
+  vLLM GPU serving. NVIDIA checks are SKIP, not PASS.

@@ -1,0 +1,31 @@
+id: dev-smoke
+classification: development-smoke-and-baseline
+production_slo: false
+streaming: true
+typical_prompt_tokens: 128
+requested_output_tokens: 64
+concurrency_levels: [1, 4, 8, 10]
+phase1_acceptance_concurrency: 10
+warmup_requests: 4
+warmup_duration_seconds: 30
+measurement_duration_seconds: 60
+request_timeout_seconds: 120
+success_definition: |
+  HTTP success, well-formed streaming chunks, non-empty generated content,
+  a terminal stream event, and completion within the request timeout.
+  Warm-up requests are excluded from steady-state throughput.
+prompt_template: "Write a short factual paragraph about {topic}. Keep it concise."
+topics:
+  - distributed systems
+  - GPU memory
+  - HTTP streaming
+optional_scenarios:
+  medium:
+    typical_prompt_tokens: 512
+    requested_output_tokens: 128
+  long:
+    typical_prompt_tokens: 2048
+    requested_output_tokens: 256
+notes: |
+  Lengths and concurrency are configuration, not test literals. The 5000
+  output-tokens/sec figure is aspirational and is not a Phase 1 gate.

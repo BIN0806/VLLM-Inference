@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "inference-platform"
+version = "0.1.0"
+description = "Distributed vLLM inference serving platform (inference only)."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Inference platform contributors" }]
+keywords = ["vllm", "inference", "serving"]
+classifiers = [
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "openai==3.5.0",
+  "httpx==0.28.1",
+  "pydantic==2.13.4",
+  "pydantic-settings==2.15.0",
+  "python-dotenv==1.2.3",
+  "pyyaml==6.0.3",
+  "psutil==7.2.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==9.1.1",
+  "pytest-timeout==2.4.0",
+  "ruff==0.16.5",
+]
+k8s = [
+  "kubernetes==36.0.3",
+]
+ray = [
+  "ray==2.58.0",
+]
+
+[project.scripts]
+inference-preflight = "inference_platform.preflight.runner:main"
+inference-discover-hardware = "inference_platform.hardware:main"
+inference-wait-for-service = "inference_platform.wait:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/inference_platform", "src/inference_client"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/inference_platform",
+  "src/inference_client",
+  "configs",
+  "README.md",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+  "-m",
+  "not gpu and not docker and not ray and not k8s and not load and not cloud",
+  "--strict-markers",
+]
+markers = [
+  "unit: no Docker, GPU, network, or cluster required",
+  "docker: requires local Docker",
+  "gpu: requires physical NVIDIA GPU access",
+  "ray: requires the documented Ray topology",
+  "k8s: requires the selected Kubernetes context",
+  "load: creates significant serving load",
+  "cloud: requires explicit cloud credentials and approval",
+  "integration: talks to a live vLLM endpoint",
+]
+timeout = 60
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests", "scripts", "benchmarks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"

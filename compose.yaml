@@ -1,0 +1,5 @@
+# Compose for the official vLLM image lives in docker/compose.yaml.
+# This root file exists so `docker compose` from the repository root works.
+
+include:
+  - path: docker/compose.yaml

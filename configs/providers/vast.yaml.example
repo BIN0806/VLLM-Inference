@@ -1,0 +1,18 @@
+# Example provider overlay. Copy values into ignored .env.local.
+# Do not put live IPs, ports, instance IDs, or credentials in this file.
+id: vast
+display_name: Vast.ai
+connection:
+  ssh_host_env: GPU_SSH_HOST
+  ssh_port_env: GPU_SSH_PORT
+  ssh_user_env: GPU_SSH_USER
+  instance_id_env: GPU_INSTANCE_ID
+ephemeral_filesystem: true
+persistent_volume: false
+model_cache_hint: /workspace/models
+xet_workaround: HF_HUB_DISABLE_XET=1
+notes: |
+  Vast inventory is temporary. Changing the rental should require only
+  provider/connection and hardware configuration. The Git repository is the
+  source of truth; remote caches and logs are disposable.
+  Do not create, stop, restart, or destroy Vast instances from this repo.

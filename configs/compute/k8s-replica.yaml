@@ -1,0 +1,18 @@
+id: k8s-replica
+description: One Kubernetes pod is one complete vLLM replica. KEDA scales whole replicas, min=1.
+gpus_per_replica: 1
+tensor_parallel_size: 1
+pipeline_parallel_size: 1
+distributed_executor_backend: mp
+replica_count: 1
+min_replicas: 1
+max_replicas: null
+scaling_unit: complete-replica
+horizontal_scaling: true
+scaler: keda-prometheus
+requires_durable_interceptor: false
+status: unvalidated
+notes: |
+  First future Kubernetes target. Provider-neutral base manifests with
+  overlays for local, EKS, and GKE. Unvalidated until a GPU-capable cluster
+  exists. Do not claim EKS, GKE, minikube, or k3s acceptance yet.
