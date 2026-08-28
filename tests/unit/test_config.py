@@ -89,6 +89,20 @@ def test_pins_are_exact_and_not_latest() -> None:
     assert pins["charts_and_operators"]["keda"] == "2.20.2"
     assert pins["charts_and_operators"]["nvidia_device_plugin"] == "0.20.0"
     assert pins["host_baseline"]["min_disk_gib"] == 80
+    assert pins["host_baseline"]["preferred_disk_gib"] == 100
+
+
+@pytest.mark.unit
+def test_vast_k3s_replica_disk_exception_is_1_5b_only() -> None:
+    replica = load_profile("vast-k3s-replica")
+    nine = load_profile("vast-k3s-replica-9b")
+    assert replica.profile.disk_exception is not None
+    assert replica.profile.disk_exception.enabled is True
+    assert replica.profile.disk_exception.allowed_model == "qwen2.5-1.5b-instruct-awq"
+    assert replica.profile.disk_exception.min_free_gib_before_install == 40
+    assert replica.profile.disk_exception.min_free_gib_after_acceptance == 15
+    assert nine.profile.disk_exception is None
+    assert nine.model.model_id == "Qwen/Qwen3.5-9B"
 
 
 @pytest.mark.unit

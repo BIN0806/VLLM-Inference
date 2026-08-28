@@ -12,3 +12,5 @@ notes: |
   vast-k3s-replica. Use only after discovery shows enough VRAM for the 9B
   checkpoint at TP=1. No silent fallback to 1.5B. Fail closed if the model
   does not fit. Do not provision from this repository.
+  The 1.5B disk exception does not apply here. On the current 72.5 GiB VM,
+  this profile remains NO-GO and must not be attempted.

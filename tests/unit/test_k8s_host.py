@@ -72,6 +72,57 @@ def test_small_disk_fails() -> None:
 
 
 @pytest.mark.unit
+def test_1_5b_disk_exception_warns_when_free_space_meets_install_floor() -> None:
+    facts = _good_24g(disk_total_gib=72.5, disk_free_gib=55.0)
+    results = evaluate_k8s_host(
+        load_profile("vast-k3s-replica"), facts, require_cluster=False, disk_gate="before_install"
+    )
+    disk = next(item for item in results if item.name == "disk")
+    free = next(item for item in results if item.name == "disk-free")
+    assert disk.status == "WARN"
+    assert "preferably 100" in disk.summary
+    assert "9B stays NO-GO" in disk.summary
+    assert free.status == "PASS"
+    assert overall_status(results) != "FAIL"
+
+
+@pytest.mark.unit
+def test_1_5b_disk_exception_fails_when_free_space_below_install_floor() -> None:
+    facts = _good_24g(disk_total_gib=72.5, disk_free_gib=30.0)
+    results = evaluate_k8s_host(
+        load_profile("vast-k3s-replica"), facts, require_cluster=False, disk_gate="before_install"
+    )
+    free = next(item for item in results if item.name == "disk-free")
+    assert free.status == "FAIL"
+    assert "Do not silently delete" in (free.remediation or "")
+    assert overall_status(results) == "FAIL"
+
+
+@pytest.mark.unit
+def test_1_5b_disk_exception_fails_when_free_space_below_acceptance_floor() -> None:
+    facts = _good_24g(disk_total_gib=72.5, disk_free_gib=14.0)
+    results = evaluate_k8s_host(
+        load_profile("vast-k3s-replica"),
+        facts,
+        require_cluster=False,
+        disk_gate="after_acceptance",
+    )
+    free = next(item for item in results if item.name == "disk-free")
+    assert free.status == "FAIL"
+    assert overall_status(results) == "FAIL"
+
+
+@pytest.mark.unit
+def test_9b_does_not_receive_the_1_5b_disk_exception() -> None:
+    facts = _good_24g(disk_total_gib=72.5, disk_free_gib=55.0)
+    results = evaluate_k8s_host(load_profile("vast-k3s-replica-9b"), facts, require_cluster=False)
+    disk = next(item for item in results if item.name == "disk")
+    assert disk.status == "FAIL"
+    assert not any(item.name == "disk-free" for item in results)
+    assert overall_status(results) == "FAIL"
+
+
+@pytest.mark.unit
 def test_9b_on_12gib_fails_closed() -> None:
     facts = _good_24g(gpu_names=["NVIDIA GeForce RTX 3060"], gpu_vram_mib=[12288])
     results = evaluate_k8s_host(load_profile("vast-k3s-replica-9b"), facts)

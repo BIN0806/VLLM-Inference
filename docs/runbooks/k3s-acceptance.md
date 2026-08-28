@@ -37,6 +37,18 @@ Checks (same contract as Phase 1):
 
 GitHub Actions does **not** run the live GPU job.
 
+## Disk exception (1.5B only)
+
+The general rental floor remains ≥80 GiB, preferably 100 GiB. On the
+already-rented VM whose filesystem is 72.5 GiB total / 55 GiB free, only
+`vast-k3s-replica` (1.5B AWQ) may proceed. See
+[ADR 0006](../decisions/0006-phase3-1.5b-disk-exception.md).
+
+- Before install: ≥40 GiB free.
+- After acceptance: ≥15 GiB free.
+- `vast-k3s-replica-9b` stays NO-GO. Do not run live tests against 9B here.
+- Do not delete caches, images, logs, or user files to recover space.
+
 ## Storage reminder
 
 k3s `local-path` keeps the model cache across pod restarts. Destroying the

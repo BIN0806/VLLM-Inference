@@ -70,6 +70,9 @@ host_baseline:
   notes: |
     Phase 3 first-gate host targets. Not a GPU SKU pin. Discover VRAM and
     driver at runtime; fail closed if the selected model cannot fit.
+    New rentals should still use ≥80 GiB disk, preferably 100 GiB. A
+    profile-specific exception on vast-k3s-replica (1.5B AWQ only) does
+    not change these numbers. See docs/decisions/0006-phase3-1.5b-disk-exception.md.
 
 models:
   portable_baseline:

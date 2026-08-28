@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
-from inference_platform.config import ResolvedConfig
+from inference_platform.config import DiskExceptionConfig, ResolvedConfig
 from inference_platform.preflight.results import CheckResult
 from inference_platform.topology import HardwareSnapshot, validate_topology
+
+DiskGate = Literal["before_install", "after_acceptance"]
+
+# Hard-closed: this exception cannot be reused by copying YAML onto another profile/model.
+DISK_EXCEPTION_PROFILE_ID = "vast-k3s-replica"
+DISK_EXCEPTION_MODEL_ID = "qwen2.5-1.5b-instruct-awq"
+NO_DELETE_REMEDIATION = (
+    "Stop and report. Do not silently delete caches, images, logs, or user files "
+    "to satisfy the disk gate."
+)
 
 
 def _host_baseline(config: ResolvedConfig) -> dict[str, Any]:
@@ -91,11 +101,136 @@ class K8sHostFacts:
         )
 
 
+def disk_exception_for(config: ResolvedConfig) -> DiskExceptionConfig | None:
+    """Return the 1.5B AWQ exception only for vast-k3s-replica. Never for 9B."""
+
+    exception = config.profile.disk_exception
+    if exception is None or not exception.enabled:
+        return None
+    if config.profile.id != DISK_EXCEPTION_PROFILE_ID:
+        return None
+    if config.model.id != DISK_EXCEPTION_MODEL_ID:
+        return None
+    if exception.allowed_model != DISK_EXCEPTION_MODEL_ID:
+        return None
+    return exception
+
+
+def _matches_recorded_total(disk_total: float, exception: DiskExceptionConfig) -> bool:
+    return abs(disk_total - exception.recorded_total_gib) <= exception.total_tolerance_gib
+
+
+def _evaluate_disk(
+    config: ResolvedConfig,
+    facts: K8sHostFacts,
+    *,
+    min_disk: float,
+    pref_disk: float,
+    disk_gate: DiskGate,
+) -> list[CheckResult]:
+    disk_total = facts.disk_total_gib
+    disk_free = facts.disk_free_gib
+    details = {"disk_total_gib": disk_total, "disk_free_gib": disk_free, "disk_gate": disk_gate}
+    exception = disk_exception_for(config)
+    results: list[CheckResult] = []
+
+    if disk_total is None:
+        results.append(CheckResult("disk", "FAIL", "Host disk size was not reported"))
+        return results
+
+    if disk_total >= pref_disk:
+        results.append(CheckResult("disk", "PASS", f"{disk_total:.1f} GiB disk", details=details))
+    elif disk_total >= min_disk:
+        results.append(
+            CheckResult(
+                "disk",
+                "WARN",
+                f"{disk_total:.1f} GiB disk meets the floor but is below the {pref_disk:.0f} GiB preference",
+                details=details,
+            )
+        )
+    elif (
+        exception is not None
+        and _matches_recorded_total(disk_total, exception)
+        and config.model.id == DISK_EXCEPTION_MODEL_ID
+    ):
+        results.append(
+            CheckResult(
+                "disk",
+                "WARN",
+                (
+                    f"{disk_total:.1f} GiB total / {disk_free} GiB free is below the "
+                    f"{min_disk:.0f} GiB rental floor; using the documented "
+                    f"{DISK_EXCEPTION_PROFILE_ID} 1.5B AWQ exception. "
+                    f"General recommendation remains ≥{min_disk:.0f} GiB, preferably "
+                    f"{pref_disk:.0f} GiB. 9B stays NO-GO."
+                ),
+                details={
+                    **details,
+                    "exception_recorded_total_gib": exception.recorded_total_gib,
+                    "exception_recorded_free_gib": exception.recorded_free_gib,
+                },
+            )
+        )
+    else:
+        results.append(
+            CheckResult(
+                "disk",
+                "FAIL",
+                f"{disk_total:.1f} GiB disk is below the {min_disk:.0f} GiB Phase 3 floor",
+                remediation="Select an offer with at least 80 GiB disk, preferably 100 GiB.",
+                details=details,
+            )
+        )
+
+    if exception is not None:
+        required_free = (
+            exception.min_free_gib_before_install
+            if disk_gate == "before_install"
+            else exception.min_free_gib_after_acceptance
+        )
+        gate_label = "before installation" if disk_gate == "before_install" else "after acceptance"
+        if disk_free is None:
+            results.append(
+                CheckResult(
+                    "disk-free",
+                    "FAIL",
+                    f"Free disk was not reported for the {gate_label} exception gate",
+                    remediation=NO_DELETE_REMEDIATION,
+                    details=details,
+                )
+            )
+        elif disk_free < required_free:
+            results.append(
+                CheckResult(
+                    "disk-free",
+                    "FAIL",
+                    (
+                        f"{disk_free:.1f} GiB free is below the {required_free:.0f} GiB "
+                        f"exception floor {gate_label}"
+                    ),
+                    remediation=NO_DELETE_REMEDIATION,
+                    details={**details, "required_free_gib": required_free},
+                )
+            )
+        else:
+            results.append(
+                CheckResult(
+                    "disk-free",
+                    "PASS",
+                    f"{disk_free:.1f} GiB free meets the {required_free:.0f} GiB {gate_label} floor",
+                    details={**details, "required_free_gib": required_free},
+                )
+            )
+    return results
+
+
 def evaluate_k8s_host(
     config: ResolvedConfig,
     facts: K8sHostFacts,
     *,
     require_cluster: bool = True,
+    disk_gate: DiskGate = "before_install",
 ) -> list[CheckResult]:
     """Fail closed against the selected model. Never changes model or TP."""
 
@@ -131,37 +266,15 @@ def evaluate_k8s_host(
             )
         )
 
-    disk_total = facts.disk_total_gib
-    if disk_total is None:
-        results.append(CheckResult("disk", "FAIL", "Host disk size was not reported"))
-    elif disk_total < min_disk:
-        results.append(
-            CheckResult(
-                "disk",
-                "FAIL",
-                f"{disk_total:.1f} GiB disk is below the {min_disk:.0f} GiB Phase 3 floor",
-                remediation="Select an offer with at least 80 GiB disk, preferably 100 GiB.",
-                details={"disk_total_gib": disk_total, "disk_free_gib": facts.disk_free_gib},
-            )
+    results.extend(
+        _evaluate_disk(
+            config,
+            facts,
+            min_disk=min_disk,
+            pref_disk=pref_disk,
+            disk_gate=disk_gate,
         )
-    elif disk_total < pref_disk:
-        results.append(
-            CheckResult(
-                "disk",
-                "WARN",
-                f"{disk_total:.1f} GiB disk meets the floor but is below the {pref_disk:.0f} GiB preference",
-                details={"disk_total_gib": disk_total, "disk_free_gib": facts.disk_free_gib},
-            )
-        )
-    else:
-        results.append(
-            CheckResult(
-                "disk",
-                "PASS",
-                f"{disk_total:.1f} GiB disk",
-                details={"disk_total_gib": disk_total, "disk_free_gib": facts.disk_free_gib},
-            )
-        )
+    )
 
     ram = facts.ram_gib
     if ram is None:

@@ -138,6 +138,20 @@ class WorkloadConfig(BaseModel):
     notes: str | None = None
 
 
+class DiskExceptionConfig(BaseModel):
+    """Narrow, profile-specific disk exception. Does not change host_baseline floors."""
+
+    enabled: bool = False
+    recorded_total_gib: float
+    recorded_free_gib: float
+    total_tolerance_gib: float = 2.0
+    min_free_gib_before_install: float = 40.0
+    min_free_gib_after_acceptance: float = 15.0
+    allowed_model: str
+    do_not_delete_to_satisfy: bool = True
+    notes: str | None = None
+
+
 class ProfileConfig(BaseModel):
     id: str
     provider: str
@@ -150,6 +164,7 @@ class ProfileConfig(BaseModel):
     remote_required: bool = False
     hardware_source: str | None = None
     notes: str | None = None
+    disk_exception: DiskExceptionConfig | None = None
 
 
 class EnvSettings(BaseSettings):

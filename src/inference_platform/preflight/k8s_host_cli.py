@@ -12,7 +12,7 @@ from pathlib import Path
 
 from inference_platform.config import EnvSettings, load_local_env, load_profile
 from inference_platform.paths import artifacts_dir
-from inference_platform.preflight.k8s_host import K8sHostFacts, evaluate_k8s_host
+from inference_platform.preflight.k8s_host import DiskGate, K8sHostFacts, evaluate_k8s_host
 from inference_platform.preflight.runner import overall_status, print_human, write_report
 from inference_platform.secrets import redact_mapping
 
@@ -93,6 +93,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--report", default=None)
+    parser.add_argument(
+        "--disk-gate",
+        choices=("before-install", "after-acceptance"),
+        default="before-install",
+        help="Exception free-space floor: 40 GiB before install, 15 GiB after acceptance.",
+    )
     args = parser.parse_args(argv)
 
     load_local_env()
@@ -124,7 +130,12 @@ def main(argv: list[str] | None = None) -> int:
     else:
         facts = discover_k8s_host_facts()
 
-    results = evaluate_k8s_host(config, facts, require_cluster=args.require_cluster)
+    disk_gate: DiskGate = (
+        "after_acceptance" if args.disk_gate == "after-acceptance" else "before_install"
+    )
+    results = evaluate_k8s_host(
+        config, facts, require_cluster=args.require_cluster, disk_gate=disk_gate
+    )
     status = overall_status(results)
     payload = redact_mapping(
         {
@@ -132,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
             "profile": profile_id,
             "overall": status,
             "require_cluster": args.require_cluster,
+            "disk_gate": disk_gate,
             "model_id": config.model_id,
             "checks": [item.as_dict() for item in results],
             "gate": {

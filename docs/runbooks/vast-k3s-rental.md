@@ -114,6 +114,24 @@ Do not rent from this repository. When you rent, the intended gate is:
 k3s `local-path` keeps the model cache across pod restarts. Destroying the
 Vast VM deletes it. That is not provider-persistent storage.
 
+## Documented 1.5B disk exception (already-rented VM)
+
+The **rental recommendation is unchanged**: ≥80 GiB disk, preferably 100 GiB.
+Vast cannot resize an existing instance disk
+([FAQ](https://docs.vast.ai/guides/reference/faq/instances)) and volumes cannot
+attach to VM instances
+([volumes](https://docs.vast.ai/guides/instances/storage/volumes)).
+
+A recorded filesystem of **72.5 GiB total / 55 GiB free** is allowed **only**
+for `vast-k3s-replica` (1.5B AWQ). Details:
+[ADR 0006](../decisions/0006-phase3-1.5b-disk-exception.md).
+
+- `vast-k3s-replica-9b` remains **NO-GO** on that filesystem. Do not attempt it.
+- Before installation: require ≥40 GiB free.
+- After deployment and acceptance: require ≥15 GiB free.
+- If either free-space limit is violated: stop and report. Do not delete
+  caches, images, logs, or user files to satisfy the gate.
+
 ## Out of scope for this rental
 
 Prometheus, KEDA, KubeRay, multi-node Ray, public HTTPS, scale-to-zero.

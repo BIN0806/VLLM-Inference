@@ -7,6 +7,23 @@ workload: dev-smoke
 gpu_required: true
 remote_required: true
 hardware_source: env-and-discovery
+disk_exception:
+  enabled: true
+  recorded_total_gib: 72.5
+  recorded_free_gib: 55.0
+  total_tolerance_gib: 2.0
+  min_free_gib_before_install: 40
+  min_free_gib_after_acceptance: 15
+  allowed_model: qwen2.5-1.5b-instruct-awq
+  do_not_delete_to_satisfy: true
+  notes: |
+    Narrow exception for one already-rented Vast Ubuntu 22.04 VM whose
+    filesystem is 72.5 GiB total with 55 GiB free. Vast cannot resize an
+    existing instance disk, and volumes cannot attach to VM instances.
+    The general rental recommendation remains ≥80 GiB, preferably 100 GiB.
+    9B (vast-k3s-replica-9b) stays NO-GO. Stop if free disk is below 40 GiB
+    before install or below 15 GiB after acceptance. Do not delete caches,
+    images, logs, or user files to satisfy those floors.
 notes: |
   Phase 3 first gate candidate: VM-capable Vast host, single-node k3s,
   one warm vLLM replica, portable 1.5B AWQ baseline. Provider is configurable;
@@ -15,3 +32,5 @@ notes: |
   Access is SSH-tunneled loopback. Do not provision from this repository.
   k3s local-path PVC persists across pod restarts and is lost when the Vast
   VM is destroyed; it is not provider-persistent storage.
+  A documented disk exception applies only to this 1.5B profile; it does not
+  lower the ≥80 GiB (prefer 100 GiB) rental recommendation for new VMs.

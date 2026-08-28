@@ -17,6 +17,12 @@ no Prometheus, no KEDA, no KubeRay.
 - NVIDIA device plugin **0.20.0**.
 - vLLM image digest comes from `configs/pins.yaml`, not `latest`.
 
+A documented disk exception for one already-rented 72.5 GiB VM applies only to
+`vast-k3s-replica` (1.5B AWQ). The rental recommendation remains ≥80 GiB,
+preferably 100 GiB. Require ≥40 GiB free before install and ≥15 GiB free after
+acceptance. `vast-k3s-replica-9b` stays NO-GO. Do not delete files to satisfy
+those floors. See [ADR 0006](../decisions/0006-phase3-1.5b-disk-exception.md).
+
 ## 1. NVIDIA Container Toolkit
 
 Follow NVIDIA's current install guide for your Ubuntu version:
