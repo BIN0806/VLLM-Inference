@@ -8,13 +8,13 @@ from typing import Any, Literal
 
 import yaml
 from dotenv import load_dotenv
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from inference_platform.paths import configs_dir, default_known_hosts_path
 from inference_platform.ssh import SSHTarget
 
-SECRET_SETTING_NAMES = frozenset({"vllm_api_key", "hf_token"})
+SECRET_SETTING_NAMES = frozenset({"vllm_api_key", "hf_token", "open_button_token"})
 
 
 def load_local_env() -> None:
@@ -176,6 +176,7 @@ class EnvSettings(BaseSettings):
     host_bind: str = "127.0.0.1"
     vllm_tls_verify: bool = True
     vllm_api_key: str | None = None
+    open_button_token: str | None = None
     vllm_image: str | None = None
     vllm_tensor_parallel_size: int | None = None
     vllm_pipeline_parallel_size: int | None = None
@@ -201,6 +202,7 @@ class EnvSettings(BaseSettings):
     allow_model_fallback: bool = False
     allow_offline_test_fallback: bool = False
     inference_allow_remote: bool = False
+    allow_insecure_remote_http: bool = False
 
     @field_validator(
         "gpu_ssh_port",
@@ -218,6 +220,7 @@ class EnvSettings(BaseSettings):
         "hf_home",
         "hf_token",
         "vllm_api_key",
+        "open_button_token",
         "gpu_provider",
         "gpu_ssh_host",
         "gpu_instance_id",
@@ -231,6 +234,13 @@ class EnvSettings(BaseSettings):
         if value == "":
             return None
         return value
+
+    @model_validator(mode="after")
+    def _fill_api_key_from_vast_open_button(self) -> EnvSettings:
+        """SSH tunnels skip Caddy. Public mapped ports need OPEN_BUTTON_TOKEN."""
+        if not self.vllm_api_key and self.open_button_token:
+            self.vllm_api_key = self.open_button_token
+        return self
 
 
 class ResolvedConfig(BaseModel):
@@ -325,6 +335,7 @@ class ResolvedConfig(BaseModel):
             "allow_tp_fallback": self.env.allow_tp_fallback,
             "allow_model_fallback": self.env.allow_model_fallback,
             "allow_offline_test_fallback": self.env.allow_offline_test_fallback,
+            "allow_insecure_remote_http": self.env.allow_insecure_remote_http,
         }
 
 

@@ -69,7 +69,11 @@ Compose interpolation requires `COMPOSE_ENV_FILE` (default `.env.local`). Servic
 `env_file:` does not supply `${VAR}` values. Published ports bind to `127.0.0.1`
 by default. `VLLM_API_KEY` does not protect every vLLM endpoint; the Vast portal
 authenticated reverse proxy is the current external boundary. SSH-tunneled tests
-may omit the key. Never put the key in YAML, Git, or reports.
+skip that proxy and may omit the key. The client refuses to send
+`VLLM_API_KEY` or `OPEN_BUTTON_TOKEN` to a non-loopback `http://` URL unless
+`ALLOW_INSECURE_REMOTE_HTTP=true` (lab-only, default false). Never put the key
+in YAML, Git, or reports. Phase 2 should use an SSH tunnel unless HTTPS is
+configured.
 
 ## Configuration layers
 

@@ -44,15 +44,22 @@ def test_health_models_metrics(phase1_config) -> None:
         api_key=env.vllm_api_key,
         tls_verify=env.vllm_tls_verify,
         health_path=phase1_config.serving.health_path,
+        allow_insecure_remote_http=env.allow_insecure_remote_http,
     )
     health_status, _ = get_json(
         env.vllm_base_url,
         phase1_config.serving.health_path,
         api_key=env.vllm_api_key,
         tls_verify=env.vllm_tls_verify,
+        allow_insecure_remote_http=env.allow_insecure_remote_http,
     )
     assert health_status == 200
-    client = build_client(env.vllm_base_url, env.vllm_api_key, tls_verify=env.vllm_tls_verify)
+    client = build_client(
+        env.vllm_base_url,
+        env.vllm_api_key,
+        tls_verify=env.vllm_tls_verify,
+        allow_insecure_remote_http=env.allow_insecure_remote_http,
+    )
     models = list_models(client)
     assert phase1_config.served_name in models or phase1_config.model_id in models
     live_model = resolve_model_id(
@@ -64,6 +71,7 @@ def test_health_models_metrics(phase1_config) -> None:
         phase1_config.serving.metrics_path,
         api_key=env.vllm_api_key,
         tls_verify=env.vllm_tls_verify,
+        allow_insecure_remote_http=env.allow_insecure_remote_http,
     )
     assert metrics_status == 200
     assert isinstance(body, str)
@@ -79,8 +87,14 @@ def test_configured_concurrent_streams(phase1_config) -> None:
         api_key=env.vllm_api_key,
         tls_verify=env.vllm_tls_verify,
         health_path=phase1_config.serving.health_path,
+        allow_insecure_remote_http=env.allow_insecure_remote_http,
     )
-    client = build_client(env.vllm_base_url, env.vllm_api_key, tls_verify=env.vllm_tls_verify)
+    client = build_client(
+        env.vllm_base_url,
+        env.vllm_api_key,
+        tls_verify=env.vllm_tls_verify,
+        allow_insecure_remote_http=env.allow_insecure_remote_http,
+    )
     live_model = resolve_model_id(
         list_models(client),
         served_name=phase1_config.served_name,
@@ -105,6 +119,7 @@ def test_configured_concurrent_streams(phase1_config) -> None:
             timeout=workload.request_timeout_seconds,
             tls_verify=env.vllm_tls_verify,
             enable_thinking=False,
+            allow_insecure_remote_http=env.allow_insecure_remote_http,
         )
         return spec, result
 

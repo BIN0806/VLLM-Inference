@@ -10,6 +10,8 @@ from typing import Any
 import httpx
 from openai import OpenAI
 
+from inference_client.transport import ensure_safe_credential_transport
+
 
 @dataclass
 class StreamResult:
@@ -30,7 +32,13 @@ def build_client(
     *,
     timeout: float = 120,
     tls_verify: bool = True,
+    allow_insecure_remote_http: bool = False,
 ) -> OpenAI:
+    ensure_safe_credential_transport(
+        base_url,
+        api_key=api_key,
+        allow_insecure_remote_http=allow_insecure_remote_http,
+    )
     key = api_key if api_key else "EMPTY"
     http_client = httpx.Client(verify=tls_verify, timeout=timeout)
     return OpenAI(
