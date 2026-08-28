@@ -39,8 +39,8 @@ htmlcov/
 dist/
 build/
 
-# Generated model data and caches
-models/
+# Generated model weights and caches at the repo root (not configs/models YAML)
+/models/
 .cache/
 hf-cache/
 huggingface/
