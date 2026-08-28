@@ -11,6 +11,7 @@
 - First contact (`make ssh-scan-host`) captures a **candidate** key in a temporary file, prints the SHA256 fingerprint, and installs it only after `EXPECTED_FINGERPRINT=SHA256:...`, a matching fingerprint in a trusted `known_hosts` file, or `CONFIRM=yes`. It does not append `ssh-keyscan` output to `known_hosts` as if it were already verified. Keys are stored in the gitignored project file `.ssh/known_hosts` so Vast rentals do not pollute `~/.ssh/known_hosts`.
 - This GitHub repository is public. Never commit live SSH hosts, instance IDs, `.env.local`, private keys, `known_hosts`, Hugging Face tokens, or API keys. The implementation blueprint is gitignored.
 - Do not disable TLS verification against production endpoints. `VLLM_TLS_VERIFY` defaults to true.
+- **Security backlog (does not block Phase 2):** remote HTTPS clients must refuse to send `VLLM_API_KEY` or `OPEN_BUTTON_TOKEN` when `VLLM_TLS_VERIFY=false`, unless a prominent lab-only override is explicitly enabled. Phase 2 uses a loopback SSH tunnel, so this is not a Phase 2A gate.
 - `trust_remote_code` stays false unless a later ADR records a proven requirement for a specific model.
 - Preflight and reports redact secret names and values.
 - The current Vast filesystem is ephemeral. Do not store the only copy of source there.
