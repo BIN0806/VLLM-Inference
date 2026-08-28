@@ -1,0 +1,15 @@
+id: vast-k3s-replica
+provider: vast
+compute: k8s-replica
+model: qwen2.5-1.5b-instruct-awq
+serving: defaults
+workload: dev-smoke
+gpu_required: true
+remote_required: true
+hardware_source: env-and-discovery
+notes: |
+  Phase 3 first gate candidate: VM-capable Vast host, single-node k3s,
+  one warm vLLM replica, portable 1.5B AWQ baseline. Provider is configurable;
+  Vast is the first rental candidate, not a hard-coded SKU. Do not silently
+  switch to Qwen3.5-9B. Select vast-k3s-replica-9b only after VRAM discovery.
+  Access is SSH-tunneled loopback. Do not provision from this repository.

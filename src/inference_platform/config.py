@@ -204,6 +204,13 @@ class EnvSettings(BaseSettings):
     inference_allow_remote: bool = False
     allow_insecure_remote_http: bool = False
 
+    k8s_namespace: str = "inference"
+    k8s_pvc_size: str | None = None
+    k8s_storage_class: str = "local-path"
+    k8s_model_cache_path: str | None = None
+    k8s_cpu_request: str = "2"
+    k8s_memory_request: str = "8Gi"
+
     @field_validator(
         "gpu_ssh_port",
         "vllm_tensor_parallel_size",
@@ -227,6 +234,8 @@ class EnvSettings(BaseSettings):
         "distributed_executor_backend",
         "compute_profile",
         "model_config_name",
+        "k8s_pvc_size",
+        "k8s_model_cache_path",
         mode="before",
     )
     @classmethod
@@ -300,6 +309,25 @@ class ResolvedConfig(BaseModel):
     @property
     def gpu_memory_utilization(self) -> float:
         return self.env.vllm_gpu_memory_utilization or self.serving.gpu_memory_utilization
+
+    def vllm_image_ref(self) -> str:
+        if self.env.vllm_image:
+            return self.env.vllm_image
+        image = self.pins.get("vllm", {}).get("official_image", {})
+        ref = image.get("ref")
+        if ref:
+            return str(ref)
+        raise ValueError("vLLM image digest is not pinned")
+
+    def model_cache_path(self) -> str:
+        return self.env.k8s_model_cache_path or self.env.hf_home or "/root/.cache/huggingface"
+
+    def pvc_size(self) -> str:
+        if self.env.k8s_pvc_size:
+            return self.env.k8s_pvc_size
+        storage = self.model.used_storage_gib or self.model.weight_gib
+        gib = max(40, int(storage) + 20)
+        return f"{gib}Gi"
 
     def ssh_target(self) -> SSHTarget:
         if not self.env.gpu_ssh_host or self.env.gpu_ssh_port is None:

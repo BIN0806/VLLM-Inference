@@ -65,6 +65,12 @@ def test_model_layer_yaml_is_tracked() -> None:
     for rel in (
         "configs/models/qwen3.5-9b.yaml",
         "configs/models/qwen2.5-1.5b-instruct-awq.yaml",
+        "configs/profiles/vast-k3s-replica.yaml",
+        "configs/profiles/vast-k3s-replica-9b.yaml",
+        "infra/kubernetes/base/deployment.yaml",
+        "infra/kubernetes/base/service.yaml",
+        "docs/runbooks/vast-k3s-rental.md",
+        "docs/runbooks/k3s-nvidia.md",
     ):
         assert rel in tracked, f"{rel} must be committed so clones can load profiles"
 

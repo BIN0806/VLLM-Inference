@@ -1,6 +1,0 @@
-# Placeholder. Phase 3 will add Namespace, ServiceAccount, ConfigMap, PVC,
-# download Job, Deployment, Service, PDB, and NetworkPolicy.
-# Do not apply. Unvalidated.
-apiVersion: v1
-kind: List
-items: []

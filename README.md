@@ -82,7 +82,9 @@ provider/connection and hardware values in `.env.local`.
 
 Kubernetes, Ray, KEDA, and observability READMEs stay local until those phases
 are implemented. They are gitignored so GitHub only has placeholders under
-`infra/`.
+`infra/`. Phase 3 Kubernetes YAML under `infra/kubernetes/base` is an offline
+scaffold. Do not apply it, install k3s, or rent a VM until approved. See
+`docs/runbooks/vast-k3s-rental.md`.
 
 ## Commands
 

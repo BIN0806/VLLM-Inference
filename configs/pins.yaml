@@ -60,6 +60,17 @@ charts_and_operators:
   nvidia_device_plugin_source: "https://github.com/NVIDIA/k8s-device-plugin/releases/tag/v0.20.0"
   status: "Pinned for future phases. Not installed or validated in Phase 0."
 
+host_baseline:
+  min_disk_gib: 80
+  preferred_disk_gib: 100
+  min_ram_gib: 16
+  preferred_ram_gib: 32
+  min_nvidia_driver: "550.0.0"
+  kubernetes_minor_window: "1.33-1.35"
+  notes: |
+    Phase 3 first-gate host targets. Not a GPU SKU pin. Discover VRAM and
+    driver at runtime; fail closed if the selected model cannot fit.
+
 models:
   portable_baseline:
     id: Qwen/Qwen2.5-1.5B-Instruct-AWQ

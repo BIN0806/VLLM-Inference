@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-storage
+  namespace: inference
+  labels:
+    app: inference-platform
+    component: vllm
+data:
+  storageClassName: local-path
+  accessMode: ReadWriteOnce
+  modelCachePath: /root/.cache/huggingface
+  pvcSize: 40Gi
+  notes: k3s ships StorageClass local-path. Do not apply a custom StorageClass unless
+    the overlay requires it. PVC is RWO for one replica.

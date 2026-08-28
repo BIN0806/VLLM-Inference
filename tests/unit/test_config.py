@@ -43,6 +43,30 @@ def test_vast_single_gpu_uses_9b_override() -> None:
 
 
 @pytest.mark.unit
+def test_vast_k3s_replica_is_1_5b_not_9b(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COMPUTE_PROFILE", raising=False)
+    monkeypatch.delenv("MODEL_CONFIG", raising=False)
+    monkeypatch.delenv("VLLM_MODEL", raising=False)
+    config = load_profile("vast-k3s-replica")
+    assert config.profile.provider == "vast"
+    assert config.compute is not None
+    assert config.compute.id == "k8s-replica"
+    assert config.model.model_id == "Qwen/Qwen2.5-1.5B-Instruct-AWQ"
+    assert config.fallback_model is None
+    assert config.tensor_parallel_size == 1
+    assert config.distributed_executor_backend == "mp"
+
+
+@pytest.mark.unit
+def test_vast_k3s_replica_9b_is_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COMPUTE_PROFILE", raising=False)
+    monkeypatch.delenv("MODEL_CONFIG", raising=False)
+    config = load_profile("vast-k3s-replica-9b")
+    assert config.model.model_id == "Qwen/Qwen3.5-9B"
+    assert config.fallback_model is None
+
+
+@pytest.mark.unit
 def test_env_overrides_model_and_context(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("VLLM_MODEL", "Qwen/Qwen3.5-9B")
     monkeypatch.setenv("VLLM_MAX_MODEL_LEN", "16384")
@@ -63,6 +87,8 @@ def test_pins_are_exact_and_not_latest() -> None:
     assert pins["models"]["portable_baseline"]["revision"]
     assert pins["models"]["current_validation_override"]["revision"]
     assert pins["charts_and_operators"]["keda"] == "2.20.2"
+    assert pins["charts_and_operators"]["nvidia_device_plugin"] == "0.20.0"
+    assert pins["host_baseline"]["min_disk_gib"] == 80
 
 
 @pytest.mark.unit

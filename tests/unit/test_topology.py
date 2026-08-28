@@ -105,6 +105,28 @@ def test_heterogeneous_gpus_warn() -> None:
 
 
 @pytest.mark.unit
+def test_k8s_replica_rejects_ray_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COMPUTE_PROFILE", raising=False)
+    monkeypatch.delenv("MODEL_CONFIG", raising=False)
+    monkeypatch.setenv("DISTRIBUTED_EXECUTOR_BACKEND", "ray")
+    config = load_profile("vast-k3s-replica")
+    report = validate_topology(config, _one_gpu())
+    assert not report.ok
+    assert any(issue.code == "k8s-no-ray" for issue in report.issues)
+
+
+@pytest.mark.unit
+def test_k8s_replica_rejects_tp2(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COMPUTE_PROFILE", raising=False)
+    monkeypatch.delenv("MODEL_CONFIG", raising=False)
+    monkeypatch.setenv("VLLM_TENSOR_PARALLEL_SIZE", "2")
+    config = load_profile("vast-k3s-replica")
+    report = validate_topology(config, _one_gpu())
+    assert not report.ok
+    assert any(issue.code in {"k8s-parallelism", "tp-exceeds-gpus"} for issue in report.issues)
+
+
+@pytest.mark.unit
 def test_ray_multinode_without_two_nodes() -> None:
     from inference_platform.config import ComputeConfig, load_yaml
     from inference_platform.paths import configs_dir

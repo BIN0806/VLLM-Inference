@@ -12,6 +12,7 @@ trust_remote_code: false
 architecture: Qwen2ForCausalLM
 parameter_count: 1540000000
 weight_gib: 1.51
+used_storage_gib: 2.0
 estimated_min_vram_gib: 3.0
 kv_cache_mib_per_1k_tokens: 8.0
 notes: |

@@ -32,6 +32,19 @@ def test_authoring_preflight_has_no_fail_for_missing_nvidia() -> None:
 
 
 @pytest.mark.unit
+def test_vast_k3s_preflight_skips_cluster_on_authoring_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("COMPUTE_PROFILE", raising=False)
+    monkeypatch.delenv("MODEL_CONFIG", raising=False)
+    config = load_profile("vast-k3s-replica")
+    results = run_local_checks(config)
+    k8s = next(item for item in results if item.name == "kubernetes")
+    assert k8s.status == "SKIP"
+    assert all(item.status != "FAIL" or item.name != "kubernetes" for item in results)
+
+
+@pytest.mark.unit
 def test_remote_guard_skips_without_allow_flag() -> None:
     config = load_profile("vast-single-gpu")
     result = check_remote_guard(config)

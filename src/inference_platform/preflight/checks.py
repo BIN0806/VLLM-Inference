@@ -231,23 +231,31 @@ def check_shared_memory() -> CheckResult:
 
 
 def check_kubernetes(config: ResolvedConfig) -> CheckResult:
-    if not config.profile.id.startswith("k8s"):
+    compute_id = None if config.compute is None else config.compute.id
+    if compute_id not in {"k8s-replica", "k8s-replica-zero"}:
         return CheckResult(
             name="kubernetes",
             status="SKIP",
             summary="Kubernetes is not required for this profile",
         )
+    if config.profile.remote_required:
+        return CheckResult(
+            name="kubernetes",
+            status="SKIP",
+            summary="Cluster checks run on the GPU host via k8s-host preflight, not on the authoring workstation",
+            remediation="After a VM exists, capture host facts and run `make preflight-k8s`. Do not install k3s from this repository until approved.",
+        )
     if shutil.which("kubectl") is None:
         return CheckResult(
             name="kubernetes",
             status="FAIL",
-            summary="kubectl is required for Kubernetes profiles",
+            summary="kubectl is required for local Kubernetes profiles",
             remediation="Install kubectl and point it at a GPU-capable cluster.",
         )
     return CheckResult(
         name="kubernetes",
         status="WARN",
-        summary="kubectl is present; cluster validation is not part of Phase 0",
+        summary="kubectl is present; cluster validation is not claimed",
         remediation="Do not claim EKS, GKE, minikube, or k3s acceptance until those phases run.",
     )
 

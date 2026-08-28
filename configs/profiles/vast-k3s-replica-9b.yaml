@@ -1,0 +1,14 @@
+id: vast-k3s-replica-9b
+provider: vast
+compute: k8s-replica
+model: qwen3.5-9b
+serving: defaults
+workload: dev-smoke
+gpu_required: true
+remote_required: true
+hardware_source: env-and-discovery
+notes: |
+  Optional Phase 3 profile. Same Kubernetes replica topology as
+  vast-k3s-replica. Use only after discovery shows enough VRAM for the 9B
+  checkpoint at TP=1. No silent fallback to 1.5B. Fail closed if the model
+  does not fit. Do not provision from this repository.
