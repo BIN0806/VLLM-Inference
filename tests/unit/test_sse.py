@@ -143,6 +143,36 @@ def test_ttft_uses_first_generated_content_token() -> None:
 
 
 @pytest.mark.unit
+def test_reasoning_tokens_are_not_empty_but_ttft_uses_content() -> None:
+    chunks = [
+        _event({"id": "x", "choices": [{"delta": {"reasoning": "think "}, "finish_reason": None}]}),
+        _event(_content("answer", "stop")),
+        _event("[DONE]"),
+    ]
+    result = parse_chat_completion_sse(chunks, time_fn=Clock())
+    assert result.status == "ok"
+    assert result.output_text == "think answer"
+    assert result.ttft_ms is not None
+
+
+@pytest.mark.unit
+def test_reasoning_only_stream_is_not_empty_content() -> None:
+    chunks = [
+        _event(
+            {
+                "id": "x",
+                "choices": [{"delta": {"reasoning": "only-think"}, "finish_reason": "stop"}],
+            }
+        ),
+        _event("[DONE]"),
+    ]
+    result = parse_chat_completion_sse(chunks, time_fn=Clock())
+    assert result.status == "ok"
+    assert result.output_text == "only-think"
+    assert result.ttft_ms is None
+
+
+@pytest.mark.unit
 def test_httpx_helper_records_http_and_timeout_errors() -> None:
     def unauthorized(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(401, text="nope")

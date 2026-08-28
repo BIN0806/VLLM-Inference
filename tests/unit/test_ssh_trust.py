@@ -74,6 +74,29 @@ def test_wrong_expected_fingerprint_is_rejected(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
+def test_trusted_known_hosts_allows_matching_fingerprint(tmp_path: Path) -> None:
+    dest = tmp_path / "known_hosts"
+    trusted = tmp_path / "trusted"
+    line = _ed25519_line("[example.invalid]:2222")
+    trusted.write_text(line + "\n", encoding="utf-8")
+    installed = install_host_keys(line + "\n", dest, trusted_known_hosts=trusted, confirm=False)
+    assert len(installed) == 1
+
+
+@pytest.mark.unit
+def test_trusted_known_hosts_rejects_unknown_fingerprint(tmp_path: Path) -> None:
+    dest = tmp_path / "known_hosts"
+    trusted = tmp_path / "trusted"
+    trusted.write_text(_ed25519_line("[other.invalid]:22") + "\n", encoding="utf-8")
+    with pytest.raises(HostKeyError, match="not present in the trusted"):
+        install_host_keys(
+            _ed25519_line("[example.invalid]:2222") + "\n",
+            dest,
+            trusted_known_hosts=trusted,
+        )
+
+
+@pytest.mark.unit
 def test_scan_script_does_not_trust_keyscan_output() -> None:
     from inference_platform.paths import repo_root
 
@@ -81,5 +104,6 @@ def test_scan_script_does_not_trust_keyscan_output() -> None:
     assert ">>" not in script
     assert "EXPECTED_FINGERPRINT" in script
     assert "CONFIRM" in script
+    assert "TRUSTED_KNOWN_HOSTS" in script
     assert "mktemp" in script
     assert ".ssh/known_hosts" in script

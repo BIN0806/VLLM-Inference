@@ -24,13 +24,20 @@ SECRET_ENV_NAMES = frozenset(
 )
 
 _SECRET_KEY_RE = re.compile(
-    r"(api[_-]?key|token|secret|password|passwd|authorization|credential)",
+    r"(api[_-]?key|access[_-]?token|hf[_-]?token|secret|password|passwd|authorization|credential)",
+    re.IGNORECASE,
+)
+_METRIC_KEY_RE = re.compile(
+    r"(prompt_tokens|completion_tokens|output_tokens|input_tokens|token_label|"
+    r"typical_prompt|estimated_prompt|measured_prompt|tokens_per_sec)",
     re.IGNORECASE,
 )
 _REDACTED = "***REDACTED***"
 
 
 def is_secret_name(name: str) -> bool:
+    if _METRIC_KEY_RE.search(name):
+        return False
     if name.upper() in SECRET_ENV_NAMES:
         return True
     return bool(_SECRET_KEY_RE.search(name))

@@ -10,6 +10,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 
+from inference_client.client import build_client, list_models, resolve_model_id
 from inference_client.health import get_json
 from inference_client.prompts import build_prompt, workload_token_label
 from inference_client.sse import stream_chat_completion_sse
@@ -69,12 +70,23 @@ def main() -> int:
     config = load_profile(args.profile)
     workload = apply_scenario(config, args.scenario)
     planned = plan_concurrency(
-        args.concurrency or workload.concurrency_levels[0],
+        args.concurrency or workload.phase1_acceptance_concurrency,
         cap=args.max_concurrency,
     )
     duration = args.duration or workload.measurement_duration_seconds
     warmup = args.warmup or workload.warmup_duration_seconds
     env = config.env
+    client = build_client(
+        env.vllm_base_url,
+        env.vllm_api_key,
+        timeout=workload.request_timeout_seconds,
+        tls_verify=env.vllm_tls_verify,
+    )
+    live_model = resolve_model_id(
+        list_models(client),
+        served_name=config.served_name,
+        model_id=config.model_id,
+    )
     template = workload.prompt_template or "Write about {topic}."
     topics = workload.topics or ["inference"]
     prompt_specs = [
@@ -90,12 +102,13 @@ def main() -> int:
         spec = prompt_specs[i % len(prompt_specs)]
         result = stream_chat_completion_sse(
             base_url=env.vllm_base_url,
-            model=config.served_name,
+            model=live_model,
             messages=[{"role": "user", "content": spec.text}],
             max_tokens=workload.requested_output_tokens,
             api_key=env.vllm_api_key,
             timeout=workload.request_timeout_seconds,
             tls_verify=env.vllm_tls_verify,
+            enable_thinking=False,
         )
         measured = (result.usage or {}).get("prompt_tokens")
         return {
@@ -160,6 +173,9 @@ def main() -> int:
         "classification": workload.classification,
         "hardware_note": "Record GPU/model/engine from discovery; this file is client-side.",
         "config": config.public_dict(),
+        "live_model": live_model,
+        "compose_used": False,
+        "existing_server": True,
         "requested_concurrency": planned.requested,
         "effective_concurrency": planned.effective,
         "concurrency_capped": planned.capped,

@@ -48,6 +48,18 @@ def list_models(client: OpenAI) -> list[str]:
     return [item.id for item in page.data]
 
 
+def resolve_model_id(available: list[str], *, served_name: str, model_id: str) -> str:
+    """Use the live served alias when present; otherwise the Hugging Face model id."""
+    if served_name in available:
+        return served_name
+    if model_id in available:
+        return model_id
+    raise RuntimeError(
+        "Live /v1/models returned neither the configured served name nor the model id: "
+        f"served={served_name!r} model_id={model_id!r} available={available!r}"
+    )
+
+
 def stream_chat_completion(
     client: OpenAI,
     *,

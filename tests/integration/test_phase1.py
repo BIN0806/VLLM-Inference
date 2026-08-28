@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from inference_client.client import build_client, list_models
+from inference_client.client import build_client, list_models, resolve_model_id
 from inference_client.health import get_json
 from inference_client.prompts import build_prompt, workload_token_label
 from inference_client.sse import stream_chat_completion_sse
@@ -21,7 +21,7 @@ from inference_platform.config import load_local_env, load_profile
 from inference_platform.paths import artifacts_dir
 from inference_platform.wait import wait_for_service
 
-pytestmark = [pytest.mark.integration, pytest.mark.gpu]
+pytestmark = [pytest.mark.integration, pytest.mark.gpu, pytest.mark.timeout(300)]
 
 
 def _enabled() -> bool:
@@ -55,6 +55,10 @@ def test_health_models_metrics(phase1_config) -> None:
     client = build_client(env.vllm_base_url, env.vllm_api_key, tls_verify=env.vllm_tls_verify)
     models = list_models(client)
     assert phase1_config.served_name in models or phase1_config.model_id in models
+    live_model = resolve_model_id(
+        models, served_name=phase1_config.served_name, model_id=phase1_config.model_id
+    )
+    assert live_model
     metrics_status, body = get_json(
         env.vllm_base_url,
         phase1_config.serving.metrics_path,
@@ -69,6 +73,19 @@ def test_health_models_metrics(phase1_config) -> None:
 def test_configured_concurrent_streams(phase1_config) -> None:
     env = phase1_config.env
     workload = phase1_config.workload
+    wait_for_service(
+        env.vllm_base_url,
+        timeout_seconds=30,
+        api_key=env.vllm_api_key,
+        tls_verify=env.vllm_tls_verify,
+        health_path=phase1_config.serving.health_path,
+    )
+    client = build_client(env.vllm_base_url, env.vllm_api_key, tls_verify=env.vllm_tls_verify)
+    live_model = resolve_model_id(
+        list_models(client),
+        served_name=phase1_config.served_name,
+        model_id=phase1_config.model_id,
+    )
     concurrency = workload.phase1_acceptance_concurrency
     template = workload.prompt_template or "Write one sentence about {topic}."
     topics = workload.topics or ["inference"]
@@ -81,12 +98,13 @@ def test_configured_concurrent_streams(phase1_config) -> None:
     def _one(spec):
         result = stream_chat_completion_sse(
             base_url=env.vllm_base_url,
-            model=phase1_config.served_name,
+            model=live_model,
             messages=[{"role": "user", "content": spec.text}],
             max_tokens=workload.requested_output_tokens,
             api_key=env.vllm_api_key,
             timeout=workload.request_timeout_seconds,
             tls_verify=env.vllm_tls_verify,
+            enable_thinking=False,
         )
         return spec, result
 
@@ -111,6 +129,9 @@ def test_configured_concurrent_streams(phase1_config) -> None:
         "model_id": phase1_config.model_id,
         "revision": phase1_config.revision,
         "served_model_name": phase1_config.served_name,
+        "live_model": live_model,
+        "compose_used": False,
+        "existing_server": True,
         "fallback_used": False,
         "requested_concurrency": concurrency,
         "effective_concurrency": concurrency,

@@ -26,12 +26,13 @@ SSH_OPTS=(
   -o KbdInteractiveAuthentication=no
   -o PreferredAuthentications=publickey
   -o "UserKnownHostsFile=${GPU_SSH_KNOWN_HOSTS}"
+  -o ExitOnForwardFailure=yes
   -N
   -L "${VLLM_LOCAL_TUNNEL_PORT}:${VLLM_REMOTE_HOST}:${VLLM_REMOTE_PORT}"
 )
 if [[ -n "${GPU_SSH_IDENTITY_FILE:-}" ]]; then
   SSH_OPTS+=(-i "$GPU_SSH_IDENTITY_FILE" -o IdentitiesOnly=yes)
 fi
-echo "Tunnel localhost:${VLLM_LOCAL_TUNNEL_PORT} -> ${GPU_SSH_HOST}:${VLLM_REMOTE_PORT} (remote ${VLLM_REMOTE_HOST})"
+echo "Tunnel localhost:${VLLM_LOCAL_TUNNEL_PORT} -> remote ${VLLM_REMOTE_HOST}:${VLLM_REMOTE_PORT} via SSH"
 echo "Host key checking is enabled. Use make ssh-scan-host for first contact."
 exec ssh "${SSH_OPTS[@]}" "$GPU_SSH_HOST"
