@@ -1,0 +1,15 @@
+id: vast-single-gpu
+provider: vast
+compute: single-gpu
+model: qwen3.5-9b
+fallback_model: qwen2.5-1.5b-instruct-awq
+serving: defaults
+workload: dev-smoke
+gpu_required: true
+remote_required: true
+hardware_source: env-and-discovery
+notes: |
+  Current Phase 1 GPU validation target. Provider `vast` plus compute
+  `single-gpu`. Hardware is discovered at runtime and must not be hard-coded.
+  The 9B model is the requested validation model; the 1.5B AWQ model is an
+  explicit fallback only.

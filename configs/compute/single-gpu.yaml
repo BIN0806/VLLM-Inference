@@ -1,0 +1,13 @@
+id: single-gpu
+description: One complete inference replica on one GPU. Tensor parallel size is 1.
+gpus_per_replica: 1
+tensor_parallel_size: 1
+pipeline_parallel_size: 1
+distributed_executor_backend: mp
+replica_count: 1
+scaling_unit: complete-replica
+horizontal_scaling: false
+requires_nodes: 1
+notes: |
+  This is a compute topology, not a provider. Pair with a provider overlay
+  such as vast. Do not name this profile local-1gpu; the GPU may be remote.

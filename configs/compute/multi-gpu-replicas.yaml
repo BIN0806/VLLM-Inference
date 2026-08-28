@@ -1,0 +1,14 @@
+id: multi-gpu-replicas
+description: Independent complete replicas, typically one GPU per replica, for request throughput.
+gpus_per_replica: 1
+tensor_parallel_size: 1
+pipeline_parallel_size: 1
+distributed_executor_backend: mp
+replica_count: 2
+scaling_unit: complete-replica
+horizontal_scaling: true
+requires_nodes: 1
+notes: |
+  Multiple GPUs do not imply tensor parallelism. This profile places one
+  complete model replica on each GPU and load-balances requests across
+  replicas. Distinct from multi-gpu-tp.

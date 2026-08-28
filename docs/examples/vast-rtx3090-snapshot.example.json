@@ -1,0 +1,27 @@
+{
+  "note": "Example snapshot of one Vast rental. Not project-wide defaults. Do not copy IPs or secrets into Git.",
+  "captured_for_documentation_only": true,
+  "provider": "vast",
+  "compute_profile": "single-gpu",
+  "gpu_count": 1,
+  "gpus": [
+    {
+      "index": 0,
+      "name": "NVIDIA GeForce RTX 3090",
+      "vram_mib": 24576
+    }
+  ],
+  "driver_version": "580.159.03",
+  "cuda_reported": "13.0",
+  "cpu_model": "Xeon E5-2673 v4",
+  "system_memory_available_gib": 27.6,
+  "disk_gib": 24,
+  "persistent_volume": false,
+  "vllm_version_reported": "0.27.1",
+  "tensor_parallel_size": 1,
+  "max_model_len": 16384,
+  "max_num_seqs": 4,
+  "model_id": "Qwen/Qwen3.5-9B",
+  "model_cache_hint": "/workspace/models",
+  "hf_hub_disable_xet": true
+}

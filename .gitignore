@@ -1,0 +1,61 @@
+# Secrets and local connection details
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+id_*
+id_*.pub
+*.p12
+*.pfx
+credentials.json
+kubeconfig
+kubeconfig.*
+.ssh/
+!.ssh/.gitkeep
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Generated model data and caches
+models/
+.cache/
+hf-cache/
+huggingface/
+*.safetensors
+*.bin
+*.gguf
+*.pt
+*.ckpt
+*.onnx
+
+# Generated reports, logs, and benchmark artifacts
+artifacts/
+reports/phase1/*
+!reports/phase1/.gitkeep
+reports/phase0/*
+!reports/phase0/.gitkeep
+*.log
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Tooling
+uv.lock.bak
+.python-version.local

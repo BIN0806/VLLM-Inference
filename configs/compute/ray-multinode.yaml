@@ -1,0 +1,15 @@
+id: ray-multinode
+description: One distributed vLLM replica spanning at least two independently scheduled GPU machines.
+gpus_per_replica: 2
+tensor_parallel_size: 1
+pipeline_parallel_size: 2
+distributed_executor_backend: ray
+replica_count: 1
+scaling_unit: complete-replica
+horizontal_scaling: false
+requires_nodes: 2
+status: "NOT RUN — HARDWARE UNAVAILABLE"
+notes: |
+  Genuine multi-node validation requires at least two independently scheduled
+  Linux GPU machines. Prefer TP within a node and PP across nodes, then
+  measure. Do not scale Ray workers independently of the complete replica.

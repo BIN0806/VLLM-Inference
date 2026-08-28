@@ -1,0 +1,77 @@
+# Frozen dependency and model pins for Phase 0.
+# Sources and compatibility notes are recorded in docs/decisions/0003-dependency-version-policy.md.
+# Never commit `latest`. Changing a pin requires an ADR update.
+
+schema_version: 1
+recorded_at: "2026-08-27"
+authoring_python: "3.12.12"
+requires_python: ">=3.11,<3.13"
+
+vllm:
+  version: "0.27.1"
+  source: "https://github.com/vllm-project/vllm/releases/tag/v0.27.1"
+  compatibility: |
+    Matches the current Vast rental. Official wheels declare CUDA 13 extras
+    (nvidia-cutlass-dsl[cu13]) and publish a CUDA 12.9 variant. A future rental
+    may require a different CUDA image; set VLLM_IMAGE per host and validate
+    during remote preflight.
+  official_image:
+    repository: vllm/vllm-openai
+    tag: v0.27.1
+    # linux/amd64 image digest from Docker Hub tag v0.27.1 (2026-08-11).
+    digest_linux_amd64: "sha256:c2f3b1b964e47809b722b5e75b61b1e7b39a50f70388cf2bf2418f16a9f31da2"
+    # Multi-arch manifest list digest.
+    digest_manifest_list: "sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967"
+    source: "https://hub.docker.com/r/vllm/vllm-openai/tags"
+    ref: "vllm/vllm-openai:v0.27.1@sha256:c2f3b1b964e47809b722b5e75b61b1e7b39a50f70388cf2bf2418f16a9f31da2"
+  torch: "2.13.0"
+
+python_packages:
+  openai: "3.5.0"
+  httpx: "0.28.1"
+  pydantic: "2.13.4"
+  pydantic_settings: "2.15.0"
+  python_dotenv: "1.2.3"
+  pyyaml: "6.0.3"
+  pytest: "9.1.1"
+  pytest_timeout: "2.4.0"
+  ruff: "0.16.5"
+  psutil: "7.2.2"
+  kubernetes: "36.0.3"
+  ray: "2.58.0"
+  notes: |
+    openai/httpx/pydantic/pyyaml/pytest/ruff/psutil are authoring and client
+    dependencies. kubernetes and ray are pinned for later phases and are optional
+    extras; they are not imported by default unit tests. The Ray version bundled
+    inside a vLLM image must be discovered on the GPU host and may differ.
+
+charts_and_operators:
+  kubernetes_baseline: "1.33-1.35 (KEDA 2.20 tested window; local kubectl client observed 1.35.0)"
+  helm_baseline: "3.16+"
+  kuberay_operator: "1.7.0"
+  kuberay_source: "https://github.com/ray-project/kuberay/releases/tag/v1.7.0"
+  kube_prometheus_stack_chart: "88.6.0"
+  kube_prometheus_stack_source: "https://github.com/prometheus-community/helm-charts/releases/tag/kube-prometheus-stack-88.6.0"
+  keda: "2.20.2"
+  keda_source: "https://github.com/kedacore/charts/releases/tag/v2.20.2"
+  keda_http_add_on: "0.15.0"
+  keda_http_add_on_source: "https://github.com/kedacore/http-add-on/releases/tag/v0.15.0"
+  nvidia_device_plugin: "0.20.0"
+  nvidia_device_plugin_source: "https://github.com/NVIDIA/k8s-device-plugin/releases/tag/v0.20.0"
+  status: "Pinned for future phases. Not installed or validated in Phase 0."
+
+models:
+  portable_baseline:
+    id: Qwen/Qwen2.5-1.5B-Instruct-AWQ
+    revision: "3ecffa0ceb27851800f45519bab9c457a04405e1"
+    license: Apache-2.0
+    source: "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-AWQ"
+    revision_source: "https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct-AWQ/revision/main"
+  current_validation_override:
+    id: Qwen/Qwen3.5-9B
+    revision: "c202236235762e1c871ad0ccb60c8ee5ba337b9a"
+    license: Apache-2.0
+    source: "https://huggingface.co/Qwen/Qwen3.5-9B"
+    revision_source: "https://huggingface.co/api/models/Qwen/Qwen3.5-9B/revision/main"
+    used_storage_bytes: 19319118862
+    parameter_count_bf16: 9653100528
