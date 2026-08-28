@@ -17,6 +17,7 @@ spec:
       labels: *id001
     spec:
       terminationGracePeriodSeconds: 60
+      enableServiceLinks: false
       containers:
       - name: vllm
         image: vllm/vllm-openai:v0.27.1@sha256:c2f3b1b964e47809b722b5e75b61b1e7b39a50f70388cf2bf2418f16a9f31da2

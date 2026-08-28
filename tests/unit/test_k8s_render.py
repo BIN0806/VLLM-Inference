@@ -61,6 +61,7 @@ def test_render_requests_one_gpu_and_slow_probes() -> None:
     assert "awq" in container["args"]
     spec = deployment["spec"]["template"]["spec"]
     assert spec.get("hostNetwork") is not True
+    assert spec.get("enableServiceLinks") is False
     assert "hostPort" not in str(container["ports"])
     assert manifests["service.yaml"]["spec"]["type"] == "ClusterIP"
     secret = manifests["secret.yaml.example"]["stringData"]

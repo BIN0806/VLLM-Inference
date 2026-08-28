@@ -181,6 +181,7 @@ def render_manifests(config: ResolvedConfig) -> dict[str, dict[str, Any]]:
                 "metadata": {"labels": labels},
                 "spec": {
                     "terminationGracePeriodSeconds": 60,
+                    "enableServiceLinks": False,
                     "containers": [
                         {
                             "name": "vllm",
