@@ -68,6 +68,10 @@ def test_render_requests_one_gpu_and_slow_probes() -> None:
     assert secret["VLLM_API_KEY"] == ""
     assert "sha256:" in container["image"]
     assert "latest" not in container["image"]
+    notes = manifests["storage.yaml"]["data"]["notes"]
+    assert "persists across pod restarts" in notes
+    assert "does not survive destruction of the Vast VM" in notes
+    assert "not provider-persistent" in notes
 
 
 @pytest.mark.unit

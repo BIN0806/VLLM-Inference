@@ -36,3 +36,8 @@ Checks (same contract as Phase 1):
 - Base URL is loopback unless `ALLOW_INSECURE_REMOTE_HTTP` is explicitly set
 
 GitHub Actions does **not** run the live GPU job.
+
+## Storage reminder
+
+k3s `local-path` keeps the model cache across pod restarts. Destroying the
+Vast VM deletes that cache. It is not provider-persistent storage.

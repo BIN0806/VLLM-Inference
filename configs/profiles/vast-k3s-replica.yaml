@@ -13,3 +13,5 @@ notes: |
   Vast is the first rental candidate, not a hard-coded SKU. Do not silently
   switch to Qwen3.5-9B. Select vast-k3s-replica-9b only after VRAM discovery.
   Access is SSH-tunneled loopback. Do not provision from this repository.
+  k3s local-path PVC persists across pod restarts and is lost when the Vast
+  VM is destroyed; it is not provider-persistent storage.

@@ -142,8 +142,9 @@ def render_manifests(config: ResolvedConfig) -> dict[str, dict[str, Any]]:
             "modelCachePath": cache,
             "pvcSize": default_pvc_size(config),
             "notes": (
-                "k3s ships StorageClass local-path. Do not apply a custom "
-                "StorageClass unless the overlay requires it. PVC is RWO for one replica."
+                "k3s local-path PVC persists across pod restarts on this VM. "
+                "It does not survive destruction of the Vast VM and is not "
+                "provider-persistent storage. RWO for one replica."
             ),
         },
     }

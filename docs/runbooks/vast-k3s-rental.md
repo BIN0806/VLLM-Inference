@@ -48,8 +48,10 @@ selected:
 | Internet down | Prefer **≥ 200 Mbps** so the vLLM image and 1.5B weights are not painful |
 | Reliability | Prefer **≥ 0.98** if the slider is available |
 
-Do **not** max GPU count. Do **not** select 2X/4X. Do **not** attach a
-persistent volume unless you explicitly want one; assume ephemeral disk.
+Do **not** max GPU count. Do **not** select 2X/4X. Do **not** attach a Vast
+provider persistent volume for this gate. The k3s `local-path` PVC lives on
+the VM disk: it survives pod restarts and is lost when the Vast VM is
+destroyed. That is not provider-persistent storage.
 
 ### CLI-shaped search (optional, do not execute from this repo)
 
@@ -95,6 +97,22 @@ uv run python -m inference_platform.preflight.k8s_host_cli \
 If the selected model does not fit: **stop**. Do not switch to 9B or 1.5B
 silently. The 9B profile is `vast-k3s-replica-9b` and is opt-in after VRAM
 discovery.
+
+## Live Phase 3 gate (after you select a VM)
+
+Do not rent from this repository. When you rent, the intended gate is:
+
+- Official Vast **Ubuntu 22.04 VM** template
+- Extra filter `vms_enabled=true`
+- SSH key already registered before rental
+- One RTX 3090 or RTX 4090 with 24 GiB VRAM
+- At least 80 GiB disk, preferably 100 GiB
+- One warm **1.5B AWQ** vLLM replica, TP=1, no Ray
+- Single-node k3s
+- SSH and Kubernetes port-forwarding only (no public API)
+
+k3s `local-path` keeps the model cache across pod restarts. Destroying the
+Vast VM deletes it. That is not provider-persistent storage.
 
 ## Out of scope for this rental
 

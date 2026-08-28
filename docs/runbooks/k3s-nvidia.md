@@ -51,6 +51,13 @@ kubeconfig on the node is normally `/etc/rancher/k3s/k3s.yaml`. Do not commit
 it. Copying it to the authoring Mac is optional; port-forward can run on the
 VM and be tunneled with SSH.
 
+## Storage (k3s local-path)
+
+The model cache PVC uses k3s `local-path`. That volume **persists across pod
+restarts** on the same VM. It **does not survive destruction of the Vast VM**.
+It is node-local disk, not provider-persistent storage. Destroying the rental
+deletes the weights. Do not describe this PVC as a Vast persistent volume.
+
 ## 3. NVIDIA Kubernetes device plugin 0.20.0
 
 This is **cluster infrastructure**, not an application sidecar. Pin:
@@ -71,7 +78,7 @@ Deployment requests `nvidia.com/gpu: 1`.
 On the authoring workstation (offline):
 
 ```bash
-make k8s-render PROFILE=vast-k3s-replica
+make k8s-render K8S_PROFILE=vast-k3s-replica
 ```
 
 That writes `infra/kubernetes/base`. Create the Secret on the cluster from
