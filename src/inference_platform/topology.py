@@ -124,6 +124,25 @@ def validate_topology(
             "single-gpu-tp",
             f"single-gpu compute profile requires tensor_parallel_size=1, requested {tp}",
         )
+    if compute is not None and compute.id in {"k8s-replica", "k8s-replica-zero"}:
+        if tp != 1 or pp != 1:
+            report.add(
+                "FAIL",
+                "k8s-parallelism",
+                "k8s-replica requires TP=1 and PP=1; do not change topology silently",
+            )
+        if backend != "mp":
+            report.add(
+                "FAIL",
+                "k8s-no-ray",
+                "k8s-replica uses the mp executor; Ray/KubeRay is a later gate",
+            )
+        if compute.gpus_per_replica != 1:
+            report.add(
+                "FAIL",
+                "k8s-gpu-count",
+                "k8s-replica first gate requests nvidia.com/gpu: 1",
+            )
     if compute is not None and compute.id == "multi-gpu-replicas" and tp != 1:
         report.add(
             "FAIL",
@@ -176,6 +195,13 @@ def validate_topology(
                 f"{min_vram:.1f} GiB for {model.model_id}",
             )
         elif model.estimated_min_vram_gib / max(tp, 1) > min_vram:
+            report.add(
+                "FAIL" if compute is not None and compute.id.startswith("k8s-") else "WARN",
+                "vram-below-model-floor",
+                f"{model.model_id} estimated_min_vram_gib={model.estimated_min_vram_gib} exceeds "
+                f"visible GPU VRAM {min_vram:.1f} GiB; refusing to change the model or topology",
+            )
+        elif model.estimated_min_vram_gib / max(tp, 1) > min_vram * 0.85:
             report.add(
                 "WARN",
                 "tight-vram",

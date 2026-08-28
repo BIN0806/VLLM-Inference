@@ -16,7 +16,7 @@ machine.
 | Provider `vast` | Connection overlay for a rental | Hard-coded IPs or GPU SKUs |
 | Tensor parallelism | One replica sharded across GPUs | Horizontal request scaling |
 | Independent replicas | One replica per GPU for throughput | The same thing as TP |
-| Kubernetes `k8s-replica` | Complete pods scaled by KEDA, min=1 | Validated in Phase 0 |
+| Kubernetes `k8s-replica` | One complete pod per replica, min=1 | Phase 3 1.5B AWQ on k3s accepted; KEDA not installed |
 | Scale-to-zero | Later profile behind a durable HTTP interceptor | Something vLLM metrics can do alone |
 
 Tensor parallelism and pipeline parallelism build **one complete model replica**.
@@ -29,15 +29,18 @@ needs a durable front door such as the KEDA HTTP Add-on interceptor.
 ## Phase 0 status
 
 Phase 0 freezes versions, configuration layers, preflight, and the benchmark
-contract. GPU, Ray, Kubernetes, Prometheus, and KEDA gates are **not claimed**.
+contract.
 
-Current validation target (temporary rental, not a project-wide default):
+Current portable baseline (temporary rental, not a project-wide default):
 
 - Provider: `vast`
-- Compute profile: `single-gpu`
+- Compute profile: `single-gpu` for Phase 1/2; `k8s-replica` on k3s for Phase 3
 - Portable baseline model: `Qwen/Qwen2.5-1.5B-Instruct-AWQ` @ `3ecffa0ceb27851800f45519bab9c457a04405e1`
-- Current override: `Qwen/Qwen3.5-9B` @ `c202236235762e1c871ad0ccb60c8ee5ba337b9a`
+- Phase 2 override: `Qwen/Qwen3.5-9B` @ `c202236235762e1c871ad0ccb60c8ee5ba337b9a` (not used in Phase 3)
 - vLLM: `0.27.1` with official image digest recorded in `configs/pins.yaml`
+
+Phase 3 accepted one warm 1.5B AWQ replica on single-node k3s. 9B, Ray,
+Prometheus, KEDA, and scale-to-zero are **not claimed**.
 
 ## Setup (authoring)
 
@@ -80,9 +83,12 @@ provider/connection and hardware values in `.env.local`.
 
 ## Later phases (not in this snapshot)
 
-Kubernetes, Ray, KEDA, and observability READMEs stay local until those phases
-are implemented. They are gitignored so GitHub only has placeholders under
-`infra/`.
+Ray, KEDA, and observability READMEs stay local until those phases are
+implemented. They are gitignored so GitHub only has placeholders under
+`infra/`. Phase 3 accepted one warm 1.5B AWQ replica on single-node k3s
+([status](docs/runbooks/k3s-replica-1.5b-status.md)). 9B, Ray, Prometheus,
+KEDA, and scale-to-zero were not tested. Do not rent or install a later gate
+from this repository until that gate is approved.
 
 ## Commands
 

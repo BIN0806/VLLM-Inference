@@ -25,6 +25,9 @@ UNTRACKED_PATHS = (
     "docs/phase2-status.md",
     "docs/phase2b-status.md",
     "docs/phase3-plan.md",
+    "docs/phase3-status.md",
+    "docs/phase4-plan.md",
+    "artifacts/phase3/closeout.json",
 )
 
 
@@ -37,15 +40,23 @@ def _tracked_files() -> set[str]:
 @pytest.mark.unit
 def test_committed_tree_has_no_live_ssh_host() -> None:
     root = repo_root()
-    live_host = ".".join(["137", "175", "76", "24"])
+    forbidden = (
+        ".".join(["137", "175", "76", "24"]),
+        ".".join(["115", "246", "55", "147"]),
+        "490" + "46059",
+        "SHA256:" + "+jO/" + "pb36koT",
+        "certificate-" + "authority-data",
+        "BEGIN " + "OPENSSH PRIVATE KEY",
+        "BEGIN " + "RSA PRIVATE KEY",
+        "BEGIN " + "CERTIFICATE",
+    )
     for rel in sorted(_tracked_files()):
         path = root / rel
         if not path.is_file():
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
-        assert live_host not in text, f"live SSH host found in {rel}"
-        assert "BEGIN " + "OPENSSH PRIVATE KEY" not in text
-        assert "BEGIN " + "RSA PRIVATE KEY" not in text
+        for needle in forbidden:
+            assert needle not in text, f"sensitive material {needle!r} found in {rel}"
 
 
 @pytest.mark.unit
@@ -65,8 +76,29 @@ def test_model_layer_yaml_is_tracked() -> None:
     for rel in (
         "configs/models/qwen3.5-9b.yaml",
         "configs/models/qwen2.5-1.5b-instruct-awq.yaml",
+        "configs/profiles/vast-k3s-replica.yaml",
+        "configs/profiles/vast-k3s-replica-9b.yaml",
+        "infra/kubernetes/base/deployment.yaml",
+        "infra/kubernetes/base/service.yaml",
+        "docs/runbooks/vast-k3s-rental.md",
+        "docs/runbooks/k3s-nvidia.md",
+        "docs/decisions/0006-phase3-1.5b-disk-exception.md",
+        "docs/runbooks/k3s-replica-1.5b-status.md",
+        "infra/kubernetes/overlays/vast-k3s/runtime-class-patch.yaml",
+        "infra/kubernetes/overlays/vast-k3s/nvidia-device-plugin-k3s-patch.yaml",
     ):
         assert rel in tracked, f"{rel} must be committed so clones can load profiles"
+
+
+@pytest.mark.unit
+def test_k3s_replica_status_records_out_of_scope() -> None:
+    text = (repo_root() / "docs/runbooks/k3s-replica-1.5b-status.md").read_text(encoding="utf-8")
+    assert "enableServiceLinks: false" in text
+    assert "local-path" in text
+    assert "does not survive destruction" in text.lower() or "deletes the PVC" in text
+    for topic in ("9B", "Ray", "Prometheus", "KEDA", "scale-to-zero"):
+        assert topic in text
+    assert "not tested" in text.lower()
 
 
 @pytest.mark.unit

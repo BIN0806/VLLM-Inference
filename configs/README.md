@@ -27,3 +27,8 @@ compute_profiles:
   - ray-multinode
   - k8s-replica
   - k8s-replica-zero
+
+# Composed k3s profiles (do not provision a new VM from this repo):
+#   vast-k3s-replica      — 1.5B AWQ, one GPU, k3s (Phase 3 accepted)
+#   vast-k3s-replica-9b   — 9B opt-in after VRAM discovery (not tested)
+

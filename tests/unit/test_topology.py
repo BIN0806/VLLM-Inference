@@ -9,6 +9,22 @@ from inference_platform.fallback import maybe_model_fallback, maybe_tp_fallback
 from inference_platform.topology import GpuDevice, HardwareSnapshot, validate_topology
 
 
+@pytest.fixture(autouse=True)
+def _isolate_topology_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "COMPUTE_PROFILE",
+        "MODEL_CONFIG",
+        "INFERENCE_PROFILE",
+        "VLLM_MODEL",
+        "VLLM_TENSOR_PARALLEL_SIZE",
+        "VLLM_PIPELINE_PARALLEL_SIZE",
+        "DISTRIBUTED_EXECUTOR_BACKEND",
+        "ALLOW_MODEL_FALLBACK",
+        "ALLOW_TP_FALLBACK",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
 def _one_gpu(vram_mib: int = 24576) -> HardwareSnapshot:
     return HardwareSnapshot(
         gpu_count=1,
@@ -102,6 +118,28 @@ def test_heterogeneous_gpus_warn() -> None:
     )
     report = validate_topology(config, hardware)
     assert any(issue.code == "heterogeneous-gpus" for issue in report.issues)
+
+
+@pytest.mark.unit
+def test_k8s_replica_rejects_ray_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COMPUTE_PROFILE", raising=False)
+    monkeypatch.delenv("MODEL_CONFIG", raising=False)
+    monkeypatch.setenv("DISTRIBUTED_EXECUTOR_BACKEND", "ray")
+    config = load_profile("vast-k3s-replica")
+    report = validate_topology(config, _one_gpu())
+    assert not report.ok
+    assert any(issue.code == "k8s-no-ray" for issue in report.issues)
+
+
+@pytest.mark.unit
+def test_k8s_replica_rejects_tp2(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COMPUTE_PROFILE", raising=False)
+    monkeypatch.delenv("MODEL_CONFIG", raising=False)
+    monkeypatch.setenv("VLLM_TENSOR_PARALLEL_SIZE", "2")
+    config = load_profile("vast-k3s-replica")
+    report = validate_topology(config, _one_gpu())
+    assert not report.ok
+    assert any(issue.code in {"k8s-parallelism", "tp-exceeds-gpus"} for issue in report.issues)
 
 
 @pytest.mark.unit

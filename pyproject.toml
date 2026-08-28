@@ -43,6 +43,8 @@ ray = [
 inference-preflight = "inference_platform.preflight.runner:main"
 inference-discover-hardware = "inference_platform.hardware:main"
 inference-wait-for-service = "inference_platform.wait:main"
+inference-k8s-render = "inference_platform.k8s.render:main"
+inference-preflight-k8s = "inference_platform.preflight.k8s_host_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/inference_platform", "src/inference_client"]

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for Phase 0. Not implemented until Phase 4.
+Accepted for Phase 0. Not implemented. Phase 3 did not install Prometheus or KEDA. Phase 4 is the first planned autoscaling gate (Prometheus scrape, then KEDA 1→2). Scale-to-zero stays later.
 
 ## Decision
 
@@ -16,4 +16,6 @@ Combining KEDA with complete multi-node Ray replicas needs a later controller an
 
 ## Consequences
 
-Phase 0 only records the boundary. Kubernetes, KEDA, and Prometheus directories exist as contracts, not deployments.
+Phase 0 records the boundary. Phase 3 deployed one k3s replica and did not
+install Prometheus or KEDA. Those directories remain contracts until a later
+approved gate.
