@@ -107,3 +107,5 @@ def test_scan_script_does_not_trust_keyscan_output() -> None:
     assert "TRUSTED_KNOWN_HOSTS" in script
     assert "mktemp" in script
     assert ".ssh/known_hosts" in script
+    assert "scan_rc" in script
+    assert "set +e" in script

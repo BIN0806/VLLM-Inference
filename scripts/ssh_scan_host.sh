@@ -19,12 +19,15 @@ DEST="${GPU_SSH_KNOWN_HOSTS:-$ROOT/.ssh/known_hosts}"
 TRUSTED="${TRUSTED_KNOWN_HOSTS:-$HOME/.ssh/known_hosts}"
 mkdir -p "$(dirname "$DEST")" "$ROOT/artifacts"
 CANDIDATE="$(mktemp "$ROOT/artifacts/hostkey.candidate.XXXXXX")"
-cleanup() { rm -f "$CANDIDATE"; }
+cleanup() { rm -f "$CANDIDATE" "$CANDIDATE.err"; }
 trap cleanup EXIT
 echo "Fetching candidate host key (address omitted). Not trusted yet."
-ssh-keyscan -p "$GPU_SSH_PORT" -T 10 "$GPU_SSH_HOST" > "$CANDIDATE"
+set +e
+ssh-keyscan -p "$GPU_SSH_PORT" -T 30 "$GPU_SSH_HOST" > "$CANDIDATE" 2>"$CANDIDATE.err"
+scan_rc=$?
+set -e
 if [[ ! -s "$CANDIDATE" ]]; then
-  echo "error: ssh-keyscan returned no keys" >&2
+  echo "error: ssh-keyscan returned no keys (exit ${scan_rc})" >&2
   exit 1
 fi
 echo "Candidate SHA256 fingerprint(s):"
