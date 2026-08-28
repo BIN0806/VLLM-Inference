@@ -39,7 +39,7 @@ spec:
         - --max-model-len
         - '8192'
         - --max-num-seqs
-        - '2'
+        - '8'
         - --host
         - 0.0.0.0
         - --port
