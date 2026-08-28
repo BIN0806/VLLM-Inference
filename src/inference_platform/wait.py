@@ -11,6 +11,10 @@ from urllib.parse import urljoin
 
 import httpx
 
+from inference_client.transport import (
+    InsecureCredentialTransportError,
+    ensure_safe_credential_transport,
+)
 from inference_platform.config import EnvSettings, load_local_env
 
 SleepFn = Callable[[float], None]
@@ -27,12 +31,18 @@ def wait_for_service(
     transport: httpx.BaseTransport | None = None,
     sleep: SleepFn = time.sleep,
     request_timeout: float = 5.0,
+    allow_insecure_remote_http: bool = False,
 ) -> None:
+    url = urljoin(base_url.rstrip("/") + "/", health_path.lstrip("/"))
+    ensure_safe_credential_transport(
+        url,
+        api_key=api_key,
+        allow_insecure_remote_http=allow_insecure_remote_http,
+    )
     deadline = time.monotonic() + timeout_seconds
     headers = {}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    url = urljoin(base_url.rstrip("/") + "/", health_path.lstrip("/"))
     last_error = "no attempts"
     attempts = 0
     while time.monotonic() < deadline:
@@ -76,7 +86,11 @@ def main(argv: list[str] | None = None) -> int:
             timeout_seconds=args.timeout,
             api_key=env.vllm_api_key,
             tls_verify=env.vllm_tls_verify,
+            allow_insecure_remote_http=env.allow_insecure_remote_http,
         )
+    except InsecureCredentialTransportError as exc:
+        print(exc, file=sys.stderr)
+        return 2
     except TimeoutError as exc:
         print(exc, file=sys.stderr)
         return 1

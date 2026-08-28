@@ -59,3 +59,22 @@ def test_public_dict_omits_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     public = config.public_dict()
     assert "vllm_api_key" not in public
     assert "should-not-appear" not in str(public)
+
+
+@pytest.mark.unit
+def test_open_button_token_fills_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("VLLM_API_KEY", raising=False)
+    monkeypatch.setenv("OPEN_BUTTON_TOKEN", "vast-open-button-token")
+    config = load_profile("authoring")
+    assert config.env.vllm_api_key == "vast-open-button-token"
+    public = config.public_dict()
+    assert "vast-open-button-token" not in str(public)
+    assert "open_button_token" not in public
+
+
+@pytest.mark.unit
+def test_vllm_api_key_wins_over_open_button_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VLLM_API_KEY", "explicit-vllm-key")
+    monkeypatch.setenv("OPEN_BUTTON_TOKEN", "vast-open-button-token")
+    config = load_profile("authoring")
+    assert config.env.vllm_api_key == "explicit-vllm-key"

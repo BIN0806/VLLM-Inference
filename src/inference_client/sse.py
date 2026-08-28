@@ -14,6 +14,8 @@ from typing import Any
 
 import httpx
 
+from inference_client.transport import ensure_safe_credential_transport
+
 
 @dataclass
 class SSEEvent:
@@ -270,11 +272,17 @@ def stream_chat_completion_sse(
     tls_verify: bool = True,
     transport: httpx.BaseTransport | None = None,
     enable_thinking: bool = False,
+    allow_insecure_remote_http: bool = False,
 ) -> SSEStreamResult:
     """POST /v1/chat/completions and validate the raw SSE transport, including [DONE]."""
 
     root = base_url.rstrip("/")
     url = root + "/chat/completions" if root.endswith("/v1") else root + "/v1/chat/completions"
+    ensure_safe_credential_transport(
+        url,
+        api_key=api_key,
+        allow_insecure_remote_http=allow_insecure_remote_http,
+    )
     headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
