@@ -81,8 +81,8 @@ then the k3s kubelet path + RuntimeClass patch:
 # kubectl apply -f infra/kubernetes/overlays/vast-k3s/nvidia-device-plugin-k3s-patch.yaml
 ```
 
-k3s kubelet device-plugin sockets live at
-`/var/lib/rancher/k3s/agent/kubelet/device-plugins`, not `/var/lib/kubelet/...`.
+k3s kubelet on v1.34 uses `/var/lib/kubelet/device-plugins` (standard path).
+GPU pods and the device plugin DaemonSet set `runtimeClassName: nvidia`.
 
 Confirm `kubectl describe node` shows `nvidia.com/gpu: 1`.
 

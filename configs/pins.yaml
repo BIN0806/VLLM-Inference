@@ -74,8 +74,8 @@ k3s:
     and ServiceLB, and keep embedded containerd (not Docker). Wire NVIDIA
     with nvidia-container-runtime-endpoint in /etc/rancher/k3s/config.yaml;
     do not let nvidia-ctk overwrite k3s config.toml.tmpl. GPU pods and the
-    device plugin use runtimeClassName: nvidia. The device plugin kubelet
-    socket path on k3s is /var/lib/rancher/k3s/agent/kubelet/device-plugins.
+    device plugin use runtimeClassName: nvidia. k3s v1.34 kubelet device-plugin
+    sockets are /var/lib/kubelet/device-plugins.
 
 
 host_baseline:

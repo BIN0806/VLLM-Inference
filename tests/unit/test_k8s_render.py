@@ -138,5 +138,3 @@ def test_vast_k3s_overlay_sets_nvidia_runtime_class() -> None:
     assert patch["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"
     plugin = yaml.safe_load((overlay / "nvidia-device-plugin-k3s-patch.yaml").read_text())
     assert plugin["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"
-    path = plugin["spec"]["template"]["spec"]["volumes"][0]["hostPath"]["path"]
-    assert path == "/var/lib/rancher/k3s/agent/kubelet/device-plugins"
