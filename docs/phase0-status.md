@@ -19,7 +19,7 @@ A `WARN` overall is not a `FAIL`. Mandatory authoring checks passed. NVIDIA, Ray
 
 Machine-readable report: gitignored `artifacts/phase0/preflight.json` (redacted, `gpu_gate_claimed: false`).
 
-Foundation commit: `109b86e`. Hardening commit hash is the `phase-0` tip that contains this file (`git log -1`).
+Foundation commit: `109b86e`. Hardening commit: `c2a844951bb65c5c6169df5d1e786065b39107fe` (branch `phase-0`).
 
 ## Frozen pins (see `configs/pins.yaml`)
 
