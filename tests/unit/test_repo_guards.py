@@ -50,6 +50,16 @@ def test_sensitive_and_wip_paths_are_untracked() -> None:
 
 
 @pytest.mark.unit
+def test_model_layer_yaml_is_tracked() -> None:
+    tracked = _tracked_files()
+    for rel in (
+        "configs/models/qwen3.5-9b.yaml",
+        "configs/models/qwen2.5-1.5b-instruct-awq.yaml",
+    ):
+        assert rel in tracked, f"{rel} must be committed so clones can load profiles"
+
+
+@pytest.mark.unit
 def test_no_training_modules_imported() -> None:
     src = repo_root() / "src"
     blob = "\n".join(p.read_text(encoding="utf-8") for p in src.rglob("*.py"))

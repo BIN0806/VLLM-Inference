@@ -1,0 +1,26 @@
+id: qwen3.5-9b
+role: current-validation-override
+model_id: Qwen/Qwen3.5-9B
+revision: "c202236235762e1c871ad0ccb60c8ee5ba337b9a"
+served_model_name: qwen3.5-9b
+license: Apache-2.0
+license_url: https://huggingface.co/Qwen/Qwen3.5-9B/blob/main/LICENSE
+source_url: https://huggingface.co/Qwen/Qwen3.5-9B
+quantization: none
+dtype: bfloat16
+trust_remote_code: false
+architecture: Qwen3_5ForConditionalGeneration
+parameter_count: 9653100528
+weight_gib: 18.0
+used_storage_gib: 18.0
+estimated_min_vram_gib: 22.0
+kv_cache_mib_per_1k_tokens: null
+headroom_note: |
+  Hugging Face reports ~19.3 GiB on-disk / ~9.65B BF16 parameters. A 24 GiB
+  GPU is tight once CUDA context and KV cache are included. Current rental
+  settings (max_model_len=16384, max_num_seqs=4) are an instance override,
+  not a project-wide default.
+notes: |
+  Current RTX 3090 validation model. Do not silently replace with the 1.5B AWQ
+  model. Native vLLM 0.27.1 claims Qwen3.5 hybrid support; keep
+  trust_remote_code=false unless an ADR records a proven requirement.

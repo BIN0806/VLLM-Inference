@@ -1,0 +1,20 @@
+id: qwen2.5-1.5b-instruct-awq
+role: portable-baseline
+model_id: Qwen/Qwen2.5-1.5B-Instruct-AWQ
+revision: "3ecffa0ceb27851800f45519bab9c457a04405e1"
+served_model_name: qwen2.5-1.5b-instruct-awq
+license: Apache-2.0
+license_url: https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-AWQ/blob/main/LICENSE
+source_url: https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-AWQ
+quantization: awq
+dtype: int4
+trust_remote_code: false
+architecture: Qwen2ForCausalLM
+parameter_count: 1540000000
+weight_gib: 1.51
+estimated_min_vram_gib: 3.0
+kv_cache_mib_per_1k_tokens: 8.0
+notes: |
+  Low-cost portable fallback for regression tests. Not representative of
+  tensor-parallel performance. Use only when explicitly enabled and always
+  record the fallback in the phase report.

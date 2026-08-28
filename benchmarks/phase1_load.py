@@ -42,9 +42,20 @@ def apply_scenario(config, scenario: str | None):
     return config.workload.model_copy(update=extra)
 
 
-def scrape_metrics(base_url: str, api_key: str | None, tls_verify: bool) -> str | None:
+def scrape_metrics(
+    base_url: str,
+    api_key: str | None,
+    tls_verify: bool,
+    allow_insecure_remote_http: bool = False,
+) -> str | None:
     try:
-        status, body = get_json(base_url, "/metrics", api_key=api_key, tls_verify=tls_verify)
+        status, body = get_json(
+            base_url,
+            "/metrics",
+            api_key=api_key,
+            tls_verify=tls_verify,
+            allow_insecure_remote_http=allow_insecure_remote_http,
+        )
     except Exception:  # noqa: BLE001
         return None
     if status != 200 or not isinstance(body, str):
@@ -81,6 +92,7 @@ def main() -> int:
         env.vllm_api_key,
         timeout=workload.request_timeout_seconds,
         tls_verify=env.vllm_tls_verify,
+        allow_insecure_remote_http=env.allow_insecure_remote_http,
     )
     live_model = resolve_model_id(
         list_models(client),
@@ -109,6 +121,7 @@ def main() -> int:
             timeout=workload.request_timeout_seconds,
             tls_verify=env.vllm_tls_verify,
             enable_thinking=False,
+            allow_insecure_remote_http=env.allow_insecure_remote_http,
         )
         measured = (result.usage or {}).get("prompt_tokens")
         return {
@@ -144,12 +157,22 @@ def main() -> int:
                     rows.append(item)
         return rows
 
-    metrics_before = scrape_metrics(env.vllm_base_url, env.vllm_api_key, env.vllm_tls_verify)
+    metrics_before = scrape_metrics(
+        env.vllm_base_url,
+        env.vllm_api_key,
+        env.vllm_tls_verify,
+        env.allow_insecure_remote_http,
+    )
     warmup_rows = run_window(warmup, "warmup")
     t0 = time.monotonic()
     measure_rows = run_window(duration, "steady")
     elapsed = max(time.monotonic() - t0, 1e-6)
-    metrics_after = scrape_metrics(env.vllm_base_url, env.vllm_api_key, env.vllm_tls_verify)
+    metrics_after = scrape_metrics(
+        env.vllm_base_url,
+        env.vllm_api_key,
+        env.vllm_tls_verify,
+        env.allow_insecure_remote_http,
+    )
 
     attempted = len(measure_rows)
     ok = [row for row in measure_rows if row["status"] == "ok"]
