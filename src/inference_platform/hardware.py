@@ -15,6 +15,7 @@ from typing import Any
 import psutil
 
 from inference_platform.config import EnvSettings, load_local_env
+from inference_platform.paths import default_known_hosts_path
 from inference_platform.secrets import redact_mapping
 from inference_platform.ssh import ssh_argv
 from inference_platform.topology import GpuDevice, HardwareSnapshot
@@ -205,7 +206,7 @@ def discover_remote(env: EnvSettings | None = None) -> dict[str, Any]:
         host=env.gpu_ssh_host,
         port=env.gpu_ssh_port,
         user=env.gpu_ssh_user,
-        known_hosts=env.gpu_ssh_known_hosts,
+        known_hosts=env.gpu_ssh_known_hosts or default_known_hosts_path(),
         identity_file=env.gpu_ssh_identity_file,
         connect_timeout=env.gpu_ssh_connect_timeout,
         strict_host_key_checking=env.gpu_ssh_strict_host_key_checking,

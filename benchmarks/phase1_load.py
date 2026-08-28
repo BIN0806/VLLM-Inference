@@ -10,8 +10,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 
-from inference_client.client import build_client, stream_chat_completion
 from inference_client.health import get_json
+from inference_client.prompts import build_prompt, workload_token_label
+from inference_client.sse import stream_chat_completion_sse
+from inference_platform.concurrency import plan_concurrency
 from inference_platform.config import load_local_env, load_profile
 from inference_platform.paths import artifacts_dir
 from inference_platform.secrets import redact_mapping
@@ -54,58 +56,79 @@ def main() -> int:
     parser.add_argument("--profile", default="vast-single-gpu")
     parser.add_argument("--scenario", default=None, help="optional medium|long override")
     parser.add_argument("--concurrency", type=int, default=None)
+    parser.add_argument(
+        "--max-concurrency",
+        type=int,
+        default=None,
+        help="Optional cap. If the request exceeds it, the report records both values.",
+    )
     parser.add_argument("--duration", type=int, default=None)
     parser.add_argument("--warmup", type=int, default=None)
     args = parser.parse_args()
     load_local_env()
     config = load_profile(args.profile)
     workload = apply_scenario(config, args.scenario)
-    concurrency = args.concurrency or workload.concurrency_levels[0]
+    planned = plan_concurrency(
+        args.concurrency or workload.concurrency_levels[0],
+        cap=args.max_concurrency,
+    )
     duration = args.duration or workload.measurement_duration_seconds
     warmup = args.warmup or workload.warmup_duration_seconds
     env = config.env
-    client = build_client(
-        env.vllm_base_url,
-        env.vllm_api_key,
-        timeout=workload.request_timeout_seconds,
-        tls_verify=env.vllm_tls_verify,
-    )
     template = workload.prompt_template or "Write about {topic}."
     topics = workload.topics or ["inference"]
+    prompt_specs = [
+        build_prompt(template, topic, workload.typical_prompt_tokens) for topic in topics
+    ]
+    token_label = workload_token_label(
+        nominal=workload.typical_prompt_tokens,
+        estimated=prompt_specs[0].estimated_tokens,
+        measured=None,
+    )
 
     def one(i: int):
-        prompt = template.format(topic=topics[i % len(topics)])
-        return stream_chat_completion(
-            client,
+        spec = prompt_specs[i % len(prompt_specs)]
+        result = stream_chat_completion_sse(
+            base_url=env.vllm_base_url,
             model=config.served_name,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": spec.text}],
             max_tokens=workload.requested_output_tokens,
+            api_key=env.vllm_api_key,
             timeout=workload.request_timeout_seconds,
+            tls_verify=env.vllm_tls_verify,
         )
+        measured = (result.usage or {}).get("prompt_tokens")
+        return {
+            "status": result.status,
+            "ttft_ms": result.ttft_ms,
+            "e2e_ms": result.e2e_ms,
+            "output_chars": len(result.output_text),
+            "terminal": result.terminal,
+            "saw_done": result.saw_done,
+            "finish_reason": result.finish_reason,
+            "error": result.error,
+            "usage": result.usage,
+            "estimated_prompt_tokens": spec.estimated_tokens,
+            "measured_prompt_tokens": measured,
+            "token_label": workload_token_label(
+                nominal=workload.typical_prompt_tokens,
+                estimated=spec.estimated_tokens,
+                measured=int(measured) if measured is not None else None,
+            ),
+        }
 
     def run_window(seconds: int, label: str) -> list[dict]:
         deadline = time.monotonic() + seconds
         rows: list[dict] = []
         index = 0
         while time.monotonic() < deadline:
-            batch = min(concurrency, 32)
-            with ThreadPoolExecutor(max_workers=concurrency) as pool:
-                futs = [pool.submit(one, index + j) for j in range(batch)]
-                index += batch
+            with ThreadPoolExecutor(max_workers=planned.effective) as pool:
+                futs = [pool.submit(one, index + j) for j in range(planned.effective)]
+                index += planned.effective
                 for fut in as_completed(futs):
                     item = fut.result()
-                    rows.append(
-                        {
-                            "window": label,
-                            "status": item.status,
-                            "ttft_ms": item.ttft_ms,
-                            "e2e_ms": item.e2e_ms,
-                            "output_chars": len(item.output_text),
-                            "terminal": item.terminal,
-                            "error": item.error,
-                            "usage": item.usage,
-                        }
-                    )
+                    item["window"] = label
+                    rows.append(item)
         return rows
 
     metrics_before = scrape_metrics(env.vllm_base_url, env.vllm_api_key, env.vllm_tls_verify)
@@ -120,10 +143,14 @@ def main() -> int:
     errors = attempted - len(ok)
     in_tokens = 0
     out_tokens = 0
+    measured_prompts: list[int] = []
     for row in ok:
         usage = row.get("usage") or {}
         in_tokens += int(usage.get("prompt_tokens") or 0)
         out_tokens += int(usage.get("completion_tokens") or 0)
+        if row.get("measured_prompt_tokens") is not None:
+            measured_prompts.append(int(row["measured_prompt_tokens"]))
+    measured_median = int(statistics.median(measured_prompts)) if measured_prompts else None
     ttfts = [row["ttft_ms"] for row in ok if row["ttft_ms"] is not None]
     e2e = [row["e2e_ms"] for row in ok if row["e2e_ms"] is not None]
     summary = {
@@ -133,7 +160,18 @@ def main() -> int:
         "classification": workload.classification,
         "hardware_note": "Record GPU/model/engine from discovery; this file is client-side.",
         "config": config.public_dict(),
-        "concurrency": concurrency,
+        "requested_concurrency": planned.requested,
+        "effective_concurrency": planned.effective,
+        "concurrency_capped": planned.capped,
+        "concurrency": planned.effective,
+        "typical_prompt_tokens_nominal": workload.typical_prompt_tokens,
+        "estimated_prompt_tokens": prompt_specs[0].estimated_tokens,
+        "measured_prompt_tokens_median": measured_median,
+        "token_label": workload_token_label(
+            nominal=workload.typical_prompt_tokens,
+            estimated=prompt_specs[0].estimated_tokens,
+            measured=measured_median,
+        ),
         "warmup_seconds": warmup,
         "measurement_seconds": duration,
         "attempted_requests": attempted,
@@ -160,6 +198,8 @@ def main() -> int:
         "metrics_before_present": metrics_before is not None,
         "metrics_after_present": metrics_after is not None,
         "warmup_requests": len(warmup_rows),
+        "sse_done_required": True,
+        "preflight_token_label": token_label,
     }
     out_dir = artifacts_dir() / "phase1"
     out_dir.mkdir(parents=True, exist_ok=True)

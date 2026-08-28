@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from inference_platform.paths import configs_dir
+from inference_platform.paths import configs_dir, default_known_hosts_path
 from inference_platform.ssh import SSHTarget
 
 SECRET_SETTING_NAMES = frozenset({"vllm_api_key", "hf_token"})
@@ -86,6 +86,7 @@ class ComputeConfig(BaseModel):
 
 class ServingConfig(BaseModel):
     host: str = "0.0.0.0"
+    host_bind: str = "127.0.0.1"
     container_port: int = 8000
     host_port: int = 8000
     gpu_memory_utilization: float = 0.90
@@ -172,6 +173,7 @@ class EnvSettings(BaseSettings):
     vllm_remote_host: str = "127.0.0.1"
     vllm_remote_port: int = 18000
     vllm_local_tunnel_port: int = 8000
+    host_bind: str = "127.0.0.1"
     vllm_tls_verify: bool = True
     vllm_api_key: str | None = None
     vllm_image: str | None = None
@@ -296,7 +298,7 @@ class ResolvedConfig(BaseModel):
             host=self.env.gpu_ssh_host,
             port=self.env.gpu_ssh_port,
             user=self.env.gpu_ssh_user,
-            known_hosts=self.env.gpu_ssh_known_hosts,
+            known_hosts=self.env.gpu_ssh_known_hosts or default_known_hosts_path(),
             identity_file=self.env.gpu_ssh_identity_file,
             connect_timeout=self.env.gpu_ssh_connect_timeout,
             strict_host_key_checking=self.env.gpu_ssh_strict_host_key_checking,

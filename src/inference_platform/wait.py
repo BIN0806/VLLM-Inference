@@ -1,15 +1,19 @@
-"""Bounded wait for an OpenAI-compatible vLLM endpoint."""
+"""Bounded wait for an OpenAI-compatible vLLM endpoint. Ready means HTTP 200 only."""
 
 from __future__ import annotations
 
 import argparse
 import sys
 import time
+from collections.abc import Callable
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
 
 from inference_platform.config import EnvSettings, load_local_env
+
+SleepFn = Callable[[float], None]
 
 
 def wait_for_service(
@@ -20,6 +24,9 @@ def wait_for_service(
     api_key: str | None = None,
     tls_verify: bool = True,
     health_path: str = "/health",
+    transport: httpx.BaseTransport | None = None,
+    sleep: SleepFn = time.sleep,
+    request_timeout: float = 5.0,
 ) -> None:
     deadline = time.monotonic() + timeout_seconds
     headers = {}
@@ -27,17 +34,32 @@ def wait_for_service(
         headers["Authorization"] = f"Bearer {api_key}"
     url = urljoin(base_url.rstrip("/") + "/", health_path.lstrip("/"))
     last_error = "no attempts"
+    attempts = 0
     while time.monotonic() < deadline:
+        attempts += 1
         try:
-            with httpx.Client(timeout=5.0, verify=tls_verify, headers=headers) as client:
+            client_kwargs: dict[str, Any] = {
+                "timeout": request_timeout,
+                "verify": tls_verify,
+                "headers": headers,
+            }
+            if transport is not None:
+                client_kwargs["transport"] = transport
+            with httpx.Client(**client_kwargs) as client:
                 response = client.get(url)
-            if response.status_code < 500:
+            if response.status_code == 200:
                 return
-            last_error = f"HTTP {response.status_code}"
+            last_error = f"HTTP {response.status_code} from {url}"
         except httpx.HTTPError as exc:
-            last_error = str(exc)
-        time.sleep(interval_seconds)
-    raise TimeoutError(f"Service at {base_url} not ready within {timeout_seconds}s ({last_error})")
+            last_error = f"{type(exc).__name__}: {exc}"
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        sleep(min(interval_seconds, remaining))
+    raise TimeoutError(
+        f"Service at {url} not ready within {timeout_seconds}s after {attempts} attempt(s); "
+        f"last_error={last_error}"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

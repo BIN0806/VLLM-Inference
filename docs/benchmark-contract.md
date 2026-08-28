@@ -61,7 +61,11 @@ Optional (not Phase 1 gates):
 
 ## Success and metrics
 
-A request succeeds when HTTP succeeds, chunks are well-formed, generated content is non-empty, a terminal stream event arrives, and elapsed time is within the timeout.
+A request succeeds when the health endpoint returns HTTP 200, SSE events are well-formed JSON, generated content is non-empty, a terminal `finish_reason` arrives, the stream ends with `data: [DONE]`, and elapsed time is within the timeout. The OpenAI SDK hides `[DONE]`; acceptance and this benchmark use a raw HTTPX SSE parser.
+
+Concurrency in the report is the **effective** concurrency that ran. If a cap is applied, record both the requested and effective values.
+
+Prompt size is the configured `typical_prompt_tokens` envelope. Construct or pad prompts to that size, or label the run with estimated/measured prompt tokens. Do not report a nominal 128-token workload when the prompt is a short sentence.
 
 Measure at least:
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from inference_platform.config import load_profile
+from inference_platform.paths import default_known_hosts_path
 from inference_platform.ssh import SSHConfigError, SSHTarget, ssh_argv, tunnel_argv
 
 
@@ -44,3 +46,14 @@ def test_tunnel_does_not_embed_api_key() -> None:
     assert "-L" in argv
     assert "8000:127.0.0.1:18000" in argv
     assert all("VLLM_API_KEY" not in part for part in argv)
+
+
+@pytest.mark.unit
+def test_resolved_ssh_target_uses_project_known_hosts(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GPU_SSH_HOST", "example.invalid")
+    monkeypatch.setenv("GPU_SSH_PORT", "2222")
+    monkeypatch.delenv("GPU_SSH_KNOWN_HOSTS", raising=False)
+    target = load_profile("authoring").ssh_target()
+    assert target.known_hosts == default_known_hosts_path()
+    argv = ssh_argv(target, "true")
+    assert f"UserKnownHostsFile={default_known_hosts_path()}" in " ".join(argv)

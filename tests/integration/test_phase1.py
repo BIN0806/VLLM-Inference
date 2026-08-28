@@ -1,6 +1,7 @@
 """Phase 1 integration tests. Skipped unless RUN_PHASE1=1 and a live endpoint exist.
 
 Do not run this module against a vLLM process that is still loading.
+Acceptance uses the raw SSE transport, including the `data: [DONE]` marker.
 """
 
 from __future__ import annotations
@@ -12,8 +13,10 @@ from datetime import UTC, datetime
 
 import pytest
 
-from inference_client.client import build_client, list_models, stream_chat_completion
+from inference_client.client import build_client, list_models
 from inference_client.health import get_json
+from inference_client.prompts import build_prompt, workload_token_label
+from inference_client.sse import stream_chat_completion_sse
 from inference_platform.config import load_local_env, load_profile
 from inference_platform.paths import artifacts_dir
 from inference_platform.wait import wait_for_service
@@ -48,7 +51,7 @@ def test_health_models_metrics(phase1_config) -> None:
         api_key=env.vllm_api_key,
         tls_verify=env.vllm_tls_verify,
     )
-    assert health_status < 500
+    assert health_status == 200
     client = build_client(env.vllm_base_url, env.vllm_api_key, tls_verify=env.vllm_tls_verify)
     models = list_models(client)
     assert phase1_config.served_name in models or phase1_config.model_id in models
@@ -63,36 +66,42 @@ def test_health_models_metrics(phase1_config) -> None:
     assert len(body) > 0
 
 
-def test_ten_concurrent_streams(phase1_config) -> None:
+def test_configured_concurrent_streams(phase1_config) -> None:
     env = phase1_config.env
     workload = phase1_config.workload
-    client = build_client(
-        env.vllm_base_url,
-        env.vllm_api_key,
-        timeout=workload.request_timeout_seconds,
-        tls_verify=env.vllm_tls_verify,
-    )
+    concurrency = workload.phase1_acceptance_concurrency
     template = workload.prompt_template or "Write one sentence about {topic}."
     topics = workload.topics or ["inference"]
-    prompts = [template.format(topic=topics[i % len(topics)]) for i in range(10)]
+    specs = [
+        build_prompt(template, topics[i % len(topics)], workload.typical_prompt_tokens)
+        for i in range(concurrency)
+    ]
     results = []
 
-    def _one(prompt: str):
-        return stream_chat_completion(
-            client,
+    def _one(spec):
+        result = stream_chat_completion_sse(
+            base_url=env.vllm_base_url,
             model=phase1_config.served_name,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": spec.text}],
             max_tokens=workload.requested_output_tokens,
+            api_key=env.vllm_api_key,
             timeout=workload.request_timeout_seconds,
+            tls_verify=env.vllm_tls_verify,
         )
+        return spec, result
 
-    with ThreadPoolExecutor(max_workers=10) as pool:
-        futures = [pool.submit(_one, prompt) for prompt in prompts]
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        futures = [pool.submit(_one, spec) for spec in specs]
         for future in as_completed(futures):
             results.append(future.result())
 
     failures = [
-        item for item in results if item.status != "ok" or not item.terminal or not item.output_text
+        result
+        for _spec, result in results
+        if result.status != "ok"
+        or not result.terminal
+        or not result.saw_done
+        or not result.output_text
     ]
     report_dir = artifacts_dir() / "phase1"
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -103,17 +112,29 @@ def test_ten_concurrent_streams(phase1_config) -> None:
         "revision": phase1_config.revision,
         "served_model_name": phase1_config.served_name,
         "fallback_used": False,
+        "requested_concurrency": concurrency,
+        "effective_concurrency": concurrency,
         "requests": [
             {
-                "status": item.status,
-                "ttft_ms": item.ttft_ms,
-                "e2e_ms": item.e2e_ms,
-                "output_chars": len(item.output_text),
-                "terminal": item.terminal,
-                "error": item.error,
+                "status": result.status,
+                "ttft_ms": result.ttft_ms,
+                "e2e_ms": result.e2e_ms,
+                "output_chars": len(result.output_text),
+                "terminal": result.terminal,
+                "saw_done": result.saw_done,
+                "finish_reason": result.finish_reason,
+                "error": result.error,
+                "estimated_prompt_tokens": spec.estimated_tokens,
+                "measured_prompt_tokens": (result.usage or {}).get("prompt_tokens"),
+                "token_label": workload_token_label(
+                    nominal=workload.typical_prompt_tokens,
+                    estimated=spec.estimated_tokens,
+                    measured=(result.usage or {}).get("prompt_tokens"),
+                ),
             }
-            for item in results
+            for spec, result in results
         ],
     }
     (report_dir / "concurrent_streams.json").write_text(json.dumps(payload, indent=2) + "\n")
     assert not failures, f"{len(failures)} stream(s) failed"
+    assert all(spec.meets_envelope for spec, _result in results)

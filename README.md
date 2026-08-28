@@ -52,13 +52,18 @@ Python 3.12 is required for tooling. Python 3.14 on the Mac is not used.
 Do not interrupt a loading vLLM process. When the user reports that startup
 finished:
 
-1. `make ssh-scan-host` once so StrictHostKeyChecking can stay `yes`
+1. `EXPECTED_FINGERPRINT=SHA256:... make ssh-scan-host` (or `CONFIRM=yes` after
+   comparing the printed fingerprint out of band). This writes
+   `.ssh/known_hosts` in the repo, not `~/.ssh/known_hosts`.
 2. `make tunnel` (localhost:8000 → remote 127.0.0.1:18000)
 3. `RUN_PHASE1=1 make test-phase1`
-4. `make benchmark-phase1 PROFILE=vast-single-gpu`
+4. `make benchmark-phase1`
 
-Externally exposed endpoints require `VLLM_API_KEY`. SSH-tunneled tests may
-omit it. Never put the key in YAML, Git, or reports.
+Compose interpolation requires `COMPOSE_ENV_FILE` (default `.env.local`). Service
+`env_file:` does not supply `${VAR}` values. Published ports bind to `127.0.0.1`
+by default. `VLLM_API_KEY` does not protect every vLLM endpoint; the Vast portal
+authenticated reverse proxy is the current external boundary. SSH-tunneled tests
+may omit the key. Never put the key in YAML, Git, or reports.
 
 ## Configuration layers
 

@@ -8,22 +8,31 @@ Copy `.env.example` to `.env.local` and set `GPU_SSH_HOST`, `GPU_SSH_PORT`, `GPU
 
 The tooling never reads private-key files into Python. Use the SSH agent.
 
+Host keys go in the project file `.ssh/known_hosts` (gitignored), not `~/.ssh/known_hosts`.
+
 ```bash
-make ssh-scan-host
+# Compare the printed SHA256 fingerprint out of band, then:
+EXPECTED_FINGERPRINT=SHA256:... make ssh-scan-host
+# or, after you have compared it yourself:
+CONFIRM=yes make ssh-scan-host
 make tunnel
 ```
 
 Default tunnel: `localhost:8000` → remote `127.0.0.1:18000`.
 
-## 2. Authentication
+## 2. Authentication and exposure
 
 - SSH tunnel to localhost: `VLLM_API_KEY` may be empty.
-- Public Vast URL: `VLLM_API_KEY` is required. Never paste the value into commands that will be committed or logged.
+- `VLLM_API_KEY` does not protect every vLLM endpoint. Health and metrics may remain unauthenticated.
+- Do not publish Compose ports on `0.0.0.0` for development. Default `HOST_BIND=127.0.0.1`.
+- External production exposure requires an authenticating reverse proxy or firewall. The Vast portal authenticated reverse proxy is the current external boundary. Never paste the API key into commands that will be committed or logged.
 
 ## 3. Health
 
+Ready means HTTP **200** only. 401, 404, 3xx, and 5xx are not ready.
+
 ```bash
-make check_vllm_health 2>/dev/null || ./scripts/check_vllm_health.sh
+make health
 ```
 
 ## 4. Tests (do not run while the model is loading)
@@ -32,10 +41,14 @@ make check_vllm_health 2>/dev/null || ./scripts/check_vllm_health.sh
 export RUN_PHASE1=1
 export INFERENCE_PROFILE=vast-single-gpu
 make test-phase1
-make benchmark-phase1 PROFILE=vast-single-gpu
+make benchmark-phase1
 ```
 
+Acceptance concurrency comes from `phase1_acceptance_concurrency`. Streaming checks use the raw SSE transport, including `data: [DONE]`. Prompts are expanded to the configured input-token envelope; reports label estimated or measured prompt tokens instead of assuming a short sentence is 128 tokens.
+
 Raw results land in gitignored `artifacts/phase1/`. Sanitize before any commit.
+
+Compose Make targets require `.env.local` (`COMPOSE_ENV_FILE`) and `PROFILE=vast-single-gpu` (`PHASE1_PROFILE`). Interpolation does not use the service `env_file:` mapping.
 
 ## 5. Remote discovery
 

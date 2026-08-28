@@ -2,19 +2,24 @@
 
 Recorded on the macOS authoring workstation. CUDA/vLLM GPU acceptance is **not** claimed.
 
+This file is the Phase 0 hardening snapshot (Compose interpolation, strict readiness, raw SSE `[DONE]` validation, SSH first-contact trust, localhost bind, configuration-driven workload). Live Phase 1 was not started.
+
 ## Commands and exit status
 
 | Command | Exit status | Notes |
 |---|---|---|
-| `uv run ruff check src tests scripts benchmarks` | 0 | After `--fix` for UTC alias / import order |
-| `uv run pytest tests/unit -m unit -v` | 0 | 27 passed |
+| `uv run ruff format --check src tests scripts benchmarks` | 0 | After `ruff format` |
+| `uv run ruff check src tests scripts benchmarks` | 0 | |
+| `uv run pytest tests/unit -m unit -v` | 0 | 61 passed |
 | `uv run python -m inference_platform.preflight --profile authoring` | 0 | overall `WARN` (Docker daemon down, disk headroom, undiscovered remote GPUs) |
-| Remote SSH / `INFERENCE_ALLOW_REMOTE=1` | not run | vLLM was still loading; remote access stayed disabled |
-| GPU/Ray/Kubernetes/KEDA/Prometheus gates | not run | Deferred |
+| Remote SSH / `INFERENCE_ALLOW_REMOTE=1` | not run | Local hardening only; Vast host was not contacted |
+| GPU/Ray/Kubernetes/KEDA/Prometheus gates | not run | Unclaimed |
 
 A `WARN` overall is not a `FAIL`. Mandatory authoring checks passed. NVIDIA, Ray, and Kubernetes were `SKIP` as required for this host.
 
 Machine-readable report: gitignored `artifacts/phase0/preflight.json` (redacted, `gpu_gate_claimed: false`).
+
+Foundation commit: `109b86e`. Hardening commit hash is the `phase-0` tip that contains this file (`git log -1`).
 
 ## Frozen pins (see `configs/pins.yaml`)
 
@@ -31,6 +36,8 @@ Machine-readable report: gitignored `artifacts/phase0/preflight.json` (redacted,
 - 5,000 output tokens/sec is aspirational, not a Phase 1 fail condition.
 - Multi-node Ray: `NOT RUN — HARDWARE UNAVAILABLE`.
 - Kubernetes overlays are unvalidated examples.
-- Remote mutations were not executed. Do not interrupt the loading vLLM process.
+- Remote mutations were not executed. Do not interrupt a loading vLLM process.
+- Compose interpolation requires `COMPOSE_ENV_FILE` (default `.env.local`); service `env_file:` is not a substitute.
+- Health ready means HTTP 200 only. Phase 1 streaming acceptance uses the raw SSE parser, including `data: [DONE]`.
 
-Phase 0 local gate is complete. Phase 1 live tests wait for explicit confirmation that vLLM startup finished.
+Phase 0 local gate remains complete after this hardening. Phase 1 live tests wait for explicit approval after vLLM startup is confirmed finished.

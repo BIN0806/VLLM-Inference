@@ -45,4 +45,4 @@ Default is fail-fast. TP, model, and offline-test fallbacks require explicit fla
 
 ## Remote host
 
-Vast rentals are ephemeral and have no persistent volume. Git on the authoring workstation is the source of truth. Model caches and logs on the rental are disposable. SSH uses the user agent, never reads private-key contents, and never disables host-key checking.
+Vast rentals are ephemeral and have no persistent volume. Git on the authoring workstation is the source of truth. Model caches and logs on the rental are disposable. SSH uses the user agent, never reads private-key contents, and never disables host-key checking. First-contact host keys are stored in the project `.ssh/known_hosts` file after fingerprint verification.
