@@ -76,6 +76,16 @@ def main() -> int:
     )
     parser.add_argument("--duration", type=int, default=None)
     parser.add_argument("--warmup", type=int, default=None)
+    parser.add_argument(
+        "--gpu-model", default=None, help="Recorded GPU model string for the summary"
+    )
+    parser.add_argument("--topology", default=None, help="Recorded interconnect/topology string")
+    parser.add_argument("--fallback-status", default=None, help="Recorded serving fallback status")
+    parser.add_argument(
+        "--hardware-comparison-note",
+        default=None,
+        help="Explicit comparison caveat (different GPUs, not a TP speedup claim)",
+    )
     args = parser.parse_args()
     load_local_env()
     config = load_profile(args.profile)
@@ -194,7 +204,11 @@ def main() -> int:
         "profile": config.profile.id,
         "scenario": args.scenario or workload.id,
         "classification": workload.classification,
-        "hardware_note": "Record GPU/model/engine from discovery; this file is client-side.",
+        "hardware_note": args.hardware_comparison_note
+        or "Record GPU/model/engine from discovery; this file is client-side.",
+        "gpu_model": args.gpu_model,
+        "topology": args.topology,
+        "fallback_status": args.fallback_status,
         "config": config.public_dict(),
         "live_model": live_model,
         "compose_used": False,
