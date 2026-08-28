@@ -15,3 +15,27 @@ Shared memory uses `shm_size: 8gb` plus `ipc: host` as the reviewed strategy.
 
 Compose GPU allocation requires a Linux NVIDIA container runtime. It will not
 run on the macOS authoring workstation.
+
+## Environment interpolation
+
+Docker Compose `env_file:` injects variables **into the container**. It does
+**not** supply values for `${VAR}` interpolation in `compose.yaml`. Make targets
+use `COMPOSE_ENV_FILE` (default `.env.local`), export a merged file under
+`artifacts/compose.env`, and pass `--env-file` to Compose. `make compose-env-check`
+fails if that file is missing or if the selected profile disagrees with the env
+file on model, revision, tensor-parallel size, or context length.
+
+## Network exposure
+
+Published ports default to `127.0.0.1:${HOST_PORT}`. That is the SSH-tunneled
+development bind. The process inside the container still uses `--host 0.0.0.0`
+so the published port can reach it. Do not publish raw vLLM on every host
+interface by default.
+
+`VLLM_API_KEY` does not authenticate every vLLM endpoint. Health and metrics may
+remain unauthenticated. External production exposure needs an authenticating
+reverse proxy or firewall. The Vast portal authenticated reverse proxy is the
+current external boundary.
+
+There is no fixed `container_name`; a hard-coded name blocks Compose replica
+scaling.

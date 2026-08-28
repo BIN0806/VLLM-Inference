@@ -12,7 +12,7 @@ id_*.pub
 credentials.json
 kubeconfig
 kubeconfig.*
-.ssh/
+.ssh/*
 !.ssh/.gitkeep
 
 # Python

@@ -11,9 +11,11 @@ warmup_duration_seconds: 30
 measurement_duration_seconds: 60
 request_timeout_seconds: 120
 success_definition: |
-  HTTP success, well-formed streaming chunks, non-empty generated content,
-  a terminal stream event, and completion within the request timeout.
-  Warm-up requests are excluded from steady-state throughput.
+  HTTP 200 on health, well-formed SSE events, non-empty generated content,
+  a terminal finish_reason, a transport `data: [DONE]` marker, and completion
+  within the request timeout. Warm-up requests are excluded from steady-state
+  throughput. Prompt text must meet the configured typical_prompt_tokens envelope
+  (or reports must label the actual estimated/measured token count).
 prompt_template: "Write a short factual paragraph about {topic}. Keep it concise."
 topics:
   - distributed systems

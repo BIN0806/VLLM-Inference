@@ -6,7 +6,15 @@ Expected on the macOS authoring workstation. GPU gates run over SSH on Linux NVI
 
 ## SSH host key verification failed
 
-Do not set `StrictHostKeyChecking=no`. Run `make ssh-scan-host` once, then retry.
+Do not set `StrictHostKeyChecking=no`. Capture a candidate key with `make ssh-scan-host`, compare the printed SHA256 fingerprint out of band, then rerun with `EXPECTED_FINGERPRINT=SHA256:...` or `CONFIRM=yes`. Keys are stored in `.ssh/known_hosts` in this repository. A mismatched existing key is a hard error.
+
+## Compose interpolation ignored `.env.local`
+
+`env_file:` does not feed `${VAR}` substitution. Use `make compose-env-check` (or `phase1-up`), which requires `COMPOSE_ENV_FILE` (default `.env.local`) and fails if the profile model/revision/context/TP disagrees with that file.
+
+## Health never becomes ready
+
+Ready is HTTP 200 only. 401 usually means an API key is required or wrong. 404 means the health path is wrong. Timeouts include the last status or exception.
 
 ## Model download / Xet failures
 

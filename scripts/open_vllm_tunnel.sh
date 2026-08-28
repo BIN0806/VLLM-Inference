@@ -13,6 +13,7 @@ fi
 : "${GPU_SSH_HOST:?GPU_SSH_HOST is required}"
 : "${GPU_SSH_PORT:?GPU_SSH_PORT is required}"
 : "${GPU_SSH_USER:=root}"
+: "${GPU_SSH_KNOWN_HOSTS:=$ROOT/.ssh/known_hosts}"
 : "${VLLM_REMOTE_HOST:=127.0.0.1}"
 : "${VLLM_REMOTE_PORT:=18000}"
 : "${VLLM_LOCAL_TUNNEL_PORT:=8000}"
@@ -24,12 +25,10 @@ SSH_OPTS=(
   -o PasswordAuthentication=no
   -o KbdInteractiveAuthentication=no
   -o PreferredAuthentications=publickey
+  -o "UserKnownHostsFile=${GPU_SSH_KNOWN_HOSTS}"
   -N
   -L "${VLLM_LOCAL_TUNNEL_PORT}:${VLLM_REMOTE_HOST}:${VLLM_REMOTE_PORT}"
 )
-if [[ -n "${GPU_SSH_KNOWN_HOSTS:-}" ]]; then
-  SSH_OPTS+=(-o "UserKnownHostsFile=${GPU_SSH_KNOWN_HOSTS}")
-fi
 if [[ -n "${GPU_SSH_IDENTITY_FILE:-}" ]]; then
   SSH_OPTS+=(-i "$GPU_SSH_IDENTITY_FILE" -o IdentitiesOnly=yes)
 fi

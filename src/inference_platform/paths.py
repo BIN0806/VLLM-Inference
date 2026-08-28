@@ -21,3 +21,10 @@ def artifacts_dir() -> Path:
     path = repo_root() / "artifacts"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def default_known_hosts_path() -> Path:
+    """Project-local known_hosts so Vast rentals do not share ~/.ssh/known_hosts."""
+    path = repo_root() / ".ssh"
+    path.mkdir(parents=True, exist_ok=True)
+    return path / "known_hosts"

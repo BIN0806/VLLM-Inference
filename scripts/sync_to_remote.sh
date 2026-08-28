@@ -13,16 +13,14 @@ fi
 : "${GPU_SSH_HOST:?GPU_SSH_HOST is required}"
 : "${GPU_SSH_PORT:?GPU_SSH_PORT is required}"
 : "${GPU_SSH_USER:=root}"
+: "${GPU_SSH_KNOWN_HOSTS:=$ROOT/.ssh/known_hosts}"
 REMOTE_DIR="${REMOTE_DIR:-/workspace/inference-platform}"
 if [[ "${INFERENCE_ALLOW_REMOTE:-0}" != "1" ]]; then
   echo "Refusing to copy files while INFERENCE_ALLOW_REMOTE is not 1."
   echo "The GPU filesystem is ephemeral; wait until vLLM has finished loading."
   exit 2
 fi
-SSH_OPTS=(-p "$GPU_SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes)
-if [[ -n "${GPU_SSH_KNOWN_HOSTS:-}" ]]; then
-  SSH_OPTS+=(-o "UserKnownHostsFile=${GPU_SSH_KNOWN_HOSTS}")
-fi
+SSH_OPTS=(-p "$GPU_SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=${GPU_SSH_KNOWN_HOSTS}")
 if [[ -n "${GPU_SSH_IDENTITY_FILE:-}" ]]; then
   SSH_OPTS+=(-i "$GPU_SSH_IDENTITY_FILE" -o IdentitiesOnly=yes)
 fi
@@ -31,6 +29,7 @@ rsync -az \
   --exclude '.venv/' \
   --exclude '.env' \
   --exclude '.env.local' \
+  --exclude '.ssh/' \
   --exclude 'artifacts/' \
   --exclude 'id_*' \
   --exclude '*.pem' \
