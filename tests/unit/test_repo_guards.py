@@ -19,6 +19,12 @@ UNTRACKED_PATHS = (
     "infra/kubernetes/overlays/local/README.md",
     "infra/kubernetes/overlays/eks/README.md",
     "infra/kubernetes/overlays/gke/README.md",
+    "docs/phase0-status.md",
+    "docs/phase1-status.md",
+    "docs/phase2-preflight.md",
+    "docs/phase2-status.md",
+    "docs/phase2b-status.md",
+    "docs/phase3-plan.md",
 )
 
 
@@ -47,6 +53,10 @@ def test_sensitive_and_wip_paths_are_untracked() -> None:
     tracked = _tracked_files()
     for rel in UNTRACKED_PATHS:
         assert rel not in tracked, f"{rel} must not be committed"
+    for rel in tracked:
+        name = rel.rsplit("/", 1)[-1]
+        if rel.startswith("docs/") and (name.startswith("phase") or name.endswith("plan.md")):
+            raise AssertionError(f"{rel} must not be committed")
 
 
 @pytest.mark.unit

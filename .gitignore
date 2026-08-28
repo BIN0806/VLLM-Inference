@@ -21,6 +21,10 @@ artifacts/hostkey.candidate.*
 # Private implementation brief (not published)
 distributed-llm-inference-agent-blueprint.md
 
+# Local phase gate notes and implementation plans (not published)
+docs/phase*.md
+docs/**/*plan*.md
+
 # Later-phase placeholder READMEs (kept locally until those phases)
 infra/**/README.md
 
