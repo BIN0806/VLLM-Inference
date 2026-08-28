@@ -1,13 +1,19 @@
 # Distributed vLLM inference platform
 
+Public repository: [BIN0806/VLLM-Inference](https://github.com/BIN0806/VLLM-Inference).
+
 Inference serving only. This repository does not contain training, fine-tuning,
 dataset, gradient, optimizer, or checkpoint-training code.
+
+Secrets, live SSH hosts, API keys, private keys, and `.env.local` are never
+committed. Copy `.env.example` to gitignored `.env.local` on the authoring
+machine.
 
 ## Roles
 
 | Role | What it is | What it is not |
 |---|---|---|
-| Authoring workstation (this Mac) | Docs, lint, unit tests, API client | CUDA / vLLM GPU execution |
+| Authoring workstation | Docs, lint, unit tests, API client | CUDA / vLLM GPU execution |
 | Compute `single-gpu` | One complete replica on one GPU | A provider name |
 | Provider `vast` | Connection overlay for a rental | Hard-coded IPs or GPU SKUs |
 | Tensor parallelism | One replica sharded across GPUs | Horizontal request scaling |
@@ -69,6 +75,12 @@ may omit the key. Never put the key in YAML, Git, or reports.
 
 See `configs/README.md`. Changing a Vast rental should normally require only
 provider/connection and hardware values in `.env.local`.
+
+## Later phases (not in this snapshot)
+
+Kubernetes, Ray, KEDA, and observability READMEs stay local until those phases
+are implemented. They are gitignored so GitHub only has placeholders under
+`infra/`.
 
 ## Commands
 

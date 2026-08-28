@@ -14,6 +14,15 @@ kubeconfig
 kubeconfig.*
 .ssh/*
 !.ssh/.gitkeep
+.ssh/known_hosts
+.ssh/known_hosts.old
+artifacts/hostkey.candidate.*
+
+# Private implementation brief (not published)
+distributed-llm-inference-agent-blueprint.md
+
+# Later-phase placeholder READMEs (kept locally until those phases)
+infra/**/README.md
 
 # Python
 .venv/

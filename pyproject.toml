@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Distributed vLLM inference serving platform (inference only)."
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
-license = { text = "Apache-2.0" }
+license = { text = "MIT" }
 authors = [{ name = "Inference platform contributors" }]
 keywords = ["vllm", "inference", "serving"]
 classifiers = [

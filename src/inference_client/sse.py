@@ -92,17 +92,26 @@ def _parse_event_block(block: str) -> SSEEvent | None:
     return SSEEvent(data="\n".join(data_lines), event=event_name, id=event_id)
 
 
-def _content_from_payload(payload: dict[str, Any]) -> str:
+def _field_from_payload(payload: dict[str, Any], *names: str) -> str:
     choices = payload.get("choices") or []
     if not choices:
         return ""
     choice = choices[0]
     delta = choice.get("delta") or {}
-    content = delta.get("content")
-    if content:
-        return str(content)
     message = choice.get("message") or {}
-    return str(message.get("content") or "")
+    for name in names:
+        value = delta.get(name) or message.get(name)
+        if value:
+            return str(value)
+    return ""
+
+
+def _content_from_payload(payload: dict[str, Any]) -> str:
+    return _field_from_payload(payload, "content")
+
+
+def _reasoning_from_payload(payload: dict[str, Any]) -> str:
+    return _field_from_payload(payload, "reasoning", "reasoning_content")
 
 
 def _finish_reason(payload: dict[str, Any]) -> str | None:
@@ -238,6 +247,10 @@ def _fold_event(
             if ttft_ms is None:
                 ttft_ms = (time_fn() - started) * 1000
             parts.append(content)
+        else:
+            reasoning = _reasoning_from_payload(payload)
+            if reasoning:
+                parts.append(reasoning)
         reason = _finish_reason(payload)
         if reason:
             finish_reason = reason
@@ -256,6 +269,7 @@ def stream_chat_completion_sse(
     timeout: float = 120,
     tls_verify: bool = True,
     transport: httpx.BaseTransport | None = None,
+    enable_thinking: bool = False,
 ) -> SSEStreamResult:
     """POST /v1/chat/completions and validate the raw SSE transport, including [DONE]."""
 
@@ -270,6 +284,7 @@ def stream_chat_completion_sse(
         "max_tokens": max_tokens,
         "stream": True,
         "stream_options": {"include_usage": True},
+        "chat_template_kwargs": {"enable_thinking": enable_thinking},
     }
     started = perf_counter()
     client_kwargs: dict[str, Any] = {"timeout": timeout, "verify": tls_verify}

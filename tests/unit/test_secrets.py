@@ -25,6 +25,24 @@ def test_redact_mapping_by_key() -> None:
 
 
 @pytest.mark.unit
+def test_does_not_redact_token_metrics() -> None:
+    payload = {
+        "typical_prompt_tokens_nominal": 128,
+        "estimated_prompt_tokens": 136,
+        "measured_prompt_tokens": 121,
+        "input_tokens": 900,
+        "output_tokens": 640,
+        "token_label": "measured-prompt-tokens=121(nominal=128)",
+        "hf_token": "should-hide",
+    }
+    redacted = redact_mapping(payload)
+    assert redacted["typical_prompt_tokens_nominal"] == 128
+    assert redacted["input_tokens"] == 900
+    assert redacted["token_label"] == "measured-prompt-tokens=121(nominal=128)"
+    assert redacted["hf_token"] == "***REDACTED***"
+
+
+@pytest.mark.unit
 def test_does_not_require_secret_present() -> None:
     os.environ.pop("HF_TOKEN", None)
     assert redact_text("no secrets here") == "no secrets here"

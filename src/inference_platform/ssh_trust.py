@@ -58,16 +58,13 @@ def existing_for(keys: list[HostKey], marker: str, key_type: str) -> list[HostKe
     return [item for item in keys if item.marker == marker and item.key_type == key_type]
 
 
-def install_host_keys(
-    candidate_text: str,
-    known_hosts_path: Path,
+def _require_verification(
+    candidates: list[HostKey],
     *,
-    expected_fingerprint: str | None = None,
-    confirm: bool = False,
-) -> list[HostKey]:
-    candidates = parse_keyscan(candidate_text)
-    if not candidates:
-        raise HostKeyError("ssh-keyscan produced no host keys")
+    expected_fingerprint: str | None,
+    confirm: bool,
+    trusted_known_hosts: Path | None,
+) -> None:
     fingerprints = {item.fingerprint for item in candidates}
     if expected_fingerprint:
         expected = expected_fingerprint.strip()
@@ -76,12 +73,50 @@ def install_host_keys(
                 "Candidate fingerprint does not match EXPECTED_FINGERPRINT. "
                 f"saw={sorted(fingerprints)} expected={expected}"
             )
-    elif not confirm:
-        raise HostKeyError(
-            "Refusing to install unverified ssh-keyscan output. Compare the SHA256 "
-            "fingerprint out of band, then re-run with EXPECTED_FINGERPRINT=SHA256:... "
-            "or CONFIRM=yes."
-        )
+        return
+    if confirm:
+        return
+    if trusted_known_hosts is not None and trusted_known_hosts.is_file():
+        trusted = parse_known_hosts(trusted_known_hosts.read_text(encoding="utf-8"))
+        trusted_fps = {item.fingerprint for item in trusted}
+        if not any(item.fingerprint in trusted_fps for item in candidates):
+            raise HostKeyError(
+                "Candidate fingerprint is not present in the trusted known_hosts file. "
+                "Compare SHA256 out of band, then re-run with EXPECTED_FINGERPRINT=SHA256:... "
+                "or CONFIRM=yes."
+            )
+        for key in candidates:
+            for prior in existing_for(trusted, key.marker, key.key_type):
+                if prior.blob_b64 != key.blob_b64:
+                    raise HostKeyError(
+                        f"Host key mismatch for {key.marker} ({key.key_type}): "
+                        f"trusted {prior.fingerprint} vs candidate {key.fingerprint}"
+                    )
+        return
+    raise HostKeyError(
+        "Refusing to install unverified ssh-keyscan output. Compare the SHA256 "
+        "fingerprint out of band, then re-run with EXPECTED_FINGERPRINT=SHA256:... "
+        "or CONFIRM=yes."
+    )
+
+
+def install_host_keys(
+    candidate_text: str,
+    known_hosts_path: Path,
+    *,
+    expected_fingerprint: str | None = None,
+    confirm: bool = False,
+    trusted_known_hosts: Path | None = None,
+) -> list[HostKey]:
+    candidates = parse_keyscan(candidate_text)
+    if not candidates:
+        raise HostKeyError("ssh-keyscan produced no host keys")
+    _require_verification(
+        candidates,
+        expected_fingerprint=expected_fingerprint,
+        confirm=confirm,
+        trusted_known_hosts=trusted_known_hosts,
+    )
 
     known_hosts_path.parent.mkdir(parents=True, exist_ok=True)
     existing = parse_known_hosts(
@@ -116,7 +151,8 @@ def install_host_keys(
 
 
 def format_fingerprints(keys: list[HostKey]) -> str:
-    return "\n".join(f"{item.marker} {item.key_type} {item.fingerprint}" for item in keys)
+    """Print type and SHA256 only. Do not include the live host address."""
+    return "\n".join(f"{item.key_type} {item.fingerprint}" for item in keys)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -126,6 +162,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--known-hosts", default=None)
     parser.add_argument("--expected-fingerprint", default=None)
     parser.add_argument("--confirm", action="store_true")
+    parser.add_argument(
+        "--trusted-known-hosts",
+        default=None,
+        help="Existing known_hosts used as out-of-band trust (for example ~/.ssh/known_hosts)",
+    )
     args = parser.parse_args(argv)
     candidate = Path(args.candidate).read_text(encoding="utf-8")
     keys = parse_keyscan(candidate)
@@ -133,12 +174,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.action == "show":
         return 0 if keys else 1
     dest = Path(args.known_hosts) if args.known_hosts else default_known_hosts_path()
+    trusted = Path(args.trusted_known_hosts) if args.trusted_known_hosts else None
     try:
         installed = install_host_keys(
             candidate,
             dest,
             expected_fingerprint=args.expected_fingerprint,
             confirm=args.confirm,
+            trusted_known_hosts=trusted,
         )
     except HostKeyError as exc:
         print(f"error: {exc}", file=sys.stderr)

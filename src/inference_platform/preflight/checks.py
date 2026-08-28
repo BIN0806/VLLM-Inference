@@ -147,7 +147,7 @@ def check_nvidia_local(config: ResolvedConfig) -> CheckResult:
     return CheckResult(name="nvidia-local", status="PASS", summary="nvidia-smi found on this host")
 
 
-def check_memory_disk() -> CheckResult:
+def check_memory_disk(config: ResolvedConfig | None = None) -> CheckResult:
     vm = psutil.virtual_memory()
     disk = shutil.disk_usage("/")
     mem_gib = vm.total / (1024**3)
@@ -157,7 +157,8 @@ def check_memory_disk() -> CheckResult:
         "memory_available_gib": round(vm.available / (1024**3), 2),
         "disk_free_gib": round(free_gib, 2),
     }
-    if free_gib < 5:
+    authoring_only = config is not None and not config.profile.gpu_required
+    if free_gib < 5 and not authoring_only:
         return CheckResult(
             name="capacity",
             status="FAIL",
@@ -376,7 +377,7 @@ def run_local_checks(config: ResolvedConfig) -> list[CheckResult]:
         check_platform(config),
         check_docker(),
         check_nvidia_local(config),
-        check_memory_disk(),
+        check_memory_disk(config),
         check_port(port),
         check_shared_memory(),
         check_kubernetes(config),
