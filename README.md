@@ -1,7 +1,5 @@
 # Distributed vLLM inference platform
 
-Public repository: [BIN0806/VLLM-Inference](https://github.com/BIN0806/VLLM-Inference).
-
 Inference serving only. This repository does not contain training, fine-tuning,
 dataset, gradient, optimizer, or checkpoint-training code.
 
