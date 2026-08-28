@@ -133,6 +133,7 @@ def test_vast_k3s_overlay_sets_nvidia_runtime_class() -> None:
 
     overlay = repo_root() / "infra" / "kubernetes" / "overlays" / "vast-k3s"
     kustomize = yaml.safe_load((overlay / "kustomization.yaml").read_text())
+    assert kustomize["namespace"] == "inference"
     assert "runtime-class-patch.yaml" in kustomize["patches"][0]["path"]
     patch = yaml.safe_load((overlay / "runtime-class-patch.yaml").read_text())
     assert patch["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"
