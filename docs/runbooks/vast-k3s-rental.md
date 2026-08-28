@@ -1,8 +1,10 @@
-# Vast.ai rental checklist (Phase 3 VM, do not rent yet)
+# Vast.ai rental checklist (Phase 3 VM)
 
 Do **not** create or modify a Vast instance from this repository. Use this
 page in the Vast console before you spend money. Provider stays configurable;
-Vast is the first candidate.
+Vast is the first candidate. Phase 3 1.5B AWQ on k3s was accepted on one VM;
+see [k3s-replica-1.5b-status.md](k3s-replica-1.5b-status.md). Do not rent a
+replacement from here unless a later gate is approved.
 
 Phase 2 Jupyter/container rentals are the wrong product. k3s needs a
 **VM-capable** host with systemd, root, and nested containers.

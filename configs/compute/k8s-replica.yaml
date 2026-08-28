@@ -11,10 +11,9 @@ scaling_unit: complete-replica
 horizontal_scaling: false
 scaler: keda-prometheus
 requires_durable_interceptor: false
-status: unvalidated
+status: phase3-k3s-1.5b-accepted
 notes: |
   First Kubernetes target: one warm complete replica, TP=1, PP=1, executor mp,
-  nvidia.com/gpu: 1. Do not install KEDA, Prometheus, or KubeRay for this gate.
-  The scaler field is reserved for a later approved gate. Provider-neutral
-  base manifests plus overlays. Unvalidated until a GPU-capable cluster exists.
-  Do not claim EKS, GKE, minikube, or k3s acceptance yet.
+  nvidia.com/gpu: 1. Phase 3 accepted this topology for 1.5B AWQ on single-node
+  k3s. Do not install KEDA, Prometheus, or KubeRay until a later approved gate.
+  The scaler field is reserved. EKS, GKE, and minikube remain unvalidated.

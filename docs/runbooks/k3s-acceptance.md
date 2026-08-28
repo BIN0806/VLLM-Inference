@@ -1,5 +1,7 @@
 # Phase 3 acceptance (client path)
 
+Sanitized gate record: [k3s-replica-1.5b-status.md](k3s-replica-1.5b-status.md).
+
 Use after a single warm vLLM replica is **Ready** behind SSH-tunneled loopback.
 Do not run this while the model is loading. Do not apply manifests from here.
 

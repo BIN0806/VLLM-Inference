@@ -106,6 +106,16 @@ kubectl -n inference port-forward svc/vllm 8000:8000 --address 127.0.0.1
 From the authoring Mac, SSH-forward that loopback port (`make tunnel` with
 `VLLM_REMOTE_PORT=8000`). The Service stays ClusterIP.
 
+## Service links / `VLLM_PORT`
+
+Kubernetes injects `VLLM_PORT=tcp://<service-ip>:<port>` when a Service is
+named `vllm` and `enableServiceLinks` is left at the default `true`. vLLM
+then treats `VLLM_PORT` as a URI and EngineCore crashes with
+`ValueError: VLLM_PORT appears to be a URI`.
+
+The Deployment sets `enableServiceLinks: false`. Do not work around this by
+publishing NodePort or LoadBalancer.
+
 ## Stop
 
 If `nvidia.com/gpu` is missing, if systemd is absent, if free disk violates the

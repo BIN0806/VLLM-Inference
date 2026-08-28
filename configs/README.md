@@ -28,7 +28,7 @@ compute_profiles:
   - k8s-replica
   - k8s-replica-zero
 
-# Composed Phase 3 candidates (unvalidated; do not provision from this repo):
-#   vast-k3s-replica      — 1.5B AWQ, one GPU, k3s
-#   vast-k3s-replica-9b   — 9B opt-in after VRAM discovery
+# Composed k3s profiles (do not provision a new VM from this repo):
+#   vast-k3s-replica      — 1.5B AWQ, one GPU, k3s (Phase 3 accepted)
+#   vast-k3s-replica-9b   — 9B opt-in after VRAM discovery (not tested)
 

@@ -16,4 +16,9 @@
 - Preflight and reports redact secret names and values.
 - The current Vast filesystem is ephemeral. Do not store the only copy of source there.
 - Do not create, stop, restart, or destroy Vast instances from this repository.
-- Phase 3 Kubernetes YAML is rendered offline. Do not `kubectl apply`, install k3s, or rent hardware until explicitly approved. The first gate uses SSH-tunneled loopback, not a public vLLM URL.
+  Closeout of an approved rental is an operator action, not repo tooling.
+- Phase 3 applied k3s plus one 1.5B AWQ replica on an approved GPU VM. Do not
+  `kubectl apply`, install k3s, or rent hardware for a later gate until that
+  gate is explicitly approved. Access stays SSH-tunneled loopback, not a
+  public vLLM URL. Destroying the Vast VM deletes the k3s `local-path` PVC
+  and the model cache.

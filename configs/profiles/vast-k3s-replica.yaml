@@ -25,11 +25,12 @@ disk_exception:
     before install or below 15 GiB after acceptance. Do not delete caches,
     images, logs, or user files to satisfy those floors.
 notes: |
-  Phase 3 first gate candidate: VM-capable Vast host, single-node k3s,
-  one warm vLLM replica, portable 1.5B AWQ baseline. Provider is configurable;
-  Vast is the first rental candidate, not a hard-coded SKU. Do not silently
-  switch to Qwen3.5-9B. Select vast-k3s-replica-9b only after VRAM discovery.
-  Access is SSH-tunneled loopback. Do not provision from this repository.
+  Phase 3 first gate: VM-capable Vast host, single-node k3s, one warm vLLM
+  replica, portable 1.5B AWQ baseline. Accepted for that 1.5B k3s path.
+  Provider is configurable; Vast is the first rental candidate, not a
+  hard-coded SKU. Do not silently switch to Qwen3.5-9B. Select
+  vast-k3s-replica-9b only after VRAM discovery. Access is SSH-tunneled
+  loopback. Do not provision a new VM from this repository.
   k3s local-path PVC persists across pod restarts and is lost when the Vast
   VM is destroyed; it is not provider-persistent storage.
   A documented disk exception applies only to this 1.5B profile; it does not

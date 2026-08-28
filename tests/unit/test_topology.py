@@ -9,6 +9,22 @@ from inference_platform.fallback import maybe_model_fallback, maybe_tp_fallback
 from inference_platform.topology import GpuDevice, HardwareSnapshot, validate_topology
 
 
+@pytest.fixture(autouse=True)
+def _isolate_topology_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "COMPUTE_PROFILE",
+        "MODEL_CONFIG",
+        "INFERENCE_PROFILE",
+        "VLLM_MODEL",
+        "VLLM_TENSOR_PARALLEL_SIZE",
+        "VLLM_PIPELINE_PARALLEL_SIZE",
+        "DISTRIBUTED_EXECUTOR_BACKEND",
+        "ALLOW_MODEL_FALLBACK",
+        "ALLOW_TP_FALLBACK",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
 def _one_gpu(vram_mib: int = 24576) -> HardwareSnapshot:
     return HardwareSnapshot(
         gpu_count=1,

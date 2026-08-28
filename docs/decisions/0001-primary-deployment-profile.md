@@ -10,7 +10,7 @@ The first GPU validation path is **provider `vast` + compute `single-gpu`**, not
 
 The macOS machine is an authoring workstation only. CUDA/vLLM acceptance runs over SSH on a Linux NVIDIA rental. Future providers reuse the same compute profiles (`single-gpu`, `multi-gpu-tp`, `multi-gpu-replicas`, `ray-single-host`, `ray-multinode`, `k8s-replica`, `k8s-replica-zero`).
 
-The first future Kubernetes production candidate remains `k8s-replica` (one complete replica per pod, minReplicas=1). It is unvalidated.
+The first Kubernetes production candidate remains `k8s-replica` (one complete replica per pod, minReplicas=1). Phase 3 accepted that topology for 1.5B AWQ on single-node k3s. EKS, GKE, KEDA, and 9B remain unvalidated.
 
 ## Consequences
 
