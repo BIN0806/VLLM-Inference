@@ -29,7 +29,7 @@ machine.
 | Independent replicas | One replica per GPU for throughput | The same thing as TP |
 | Kubernetes `k8s-replica` | One complete pod per replica, min=1 | Phase 3 1.5B AWQ on k3s accepted |
 | Kubernetes `k8s-replicas` | StatefulSet, one GPU per pod, max=2 | Phase 4C HTTP interceptor lab; Phase 4B 1→2→1 historical |
-| Scale-to-zero | Lab path behind KEDA HTTP Add-on 0.15.0 | Something vLLM metrics can do alone; not production serverless |
+| Scale-to-zero | Lab path behind KEDA HTTP Add-on 0.15.0 | Something vLLM metrics can do alone; not HTTP 0→2 or production serverless |
 
 Tensor parallelism and pipeline parallelism build **one complete model replica**.
 KEDA adds or removes **whole replicas**. Scaling a single TP rank or Ray
@@ -53,9 +53,12 @@ Current portable baseline (temporary rental, not a project-wide default):
 
 Phase 3 accepted one warm 1.5B AWQ replica on single-node k3s. Phase 4A
 accepted Prometheus scrape of one StatefulSet replica. Phase 4B accepted
-KEDA 1→2→1 on waiting-queue depth. Phase 4C is a single-node lab validation
-of HTTP Add-on 0.15.0 scale-to-zero. 9B, Ray, production TLS/HA, and
-managed Kubernetes are **not claimed**.
+Prometheus-driven KEDA **1→2→1**. Phase 4C accepted interceptor-driven lab
+**0→1** (one non-retried held request, 150 s Ready, HTTP 200 SSE) and a
+normal second **1→0** (~327 s). HTTP **0→2**, 9B autoscaling, Ray,
+production TLS/HA, and managed Kubernetes are **not claimed**. Docker
+Compose on a GPU host is a remaining closeout gap unless a tracked report
+proves it.
 
 ## Setup (authoring)
 
@@ -96,14 +99,13 @@ configured.
 See `configs/README.md`. Changing a Vast rental should normally require only
 provider/connection and hardware values in `.env.local`.
 
-## Later phases (not in this snapshot)
+## Later phases (not claimed)
 
-Ray, KEDA, and observability READMEs stay local until those phases are
-implemented. They are gitignored so GitHub only has placeholders under
-`infra/`. Phase 3 accepted one warm 1.5B AWQ replica on single-node k3s
-([status](docs/runbooks/k3s-replica-1.5b-status.md)). 9B, Ray, Prometheus,
-KEDA, and scale-to-zero were not tested. Do not rent or install a later gate
-from this repository until that gate is approved.
+Tracked Phase 3–4C runbooks live under `docs/runbooks/`. Infra operator
+READMEs stay gitignored placeholders. Do not claim multi-node Ray, managed
+Kubernetes, production TLS/HA, HTTP 0→2, 9B autoscaling, or 5,000 output
+tokens/s. Do not rent or install a later gate from this repository until
+that gate is approved.
 
 ## Commands
 

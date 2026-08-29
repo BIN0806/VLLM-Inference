@@ -180,14 +180,25 @@ def test_k3s_replicas_http_status_records_lab_scale_to_zero() -> None:
     assert "external-push" in text
     assert "minReplicaCount: 0" in text
     assert "X-KEDA-HTTP-Cold-Start" in text
+    assert "true" in text.lower()
     assert "152.426" in text
+    assert "150-second" in text or "150 s" in text or "**150 s**" in text
+    assert "did **not** retry" in text or "did not retry" in text.lower()
+    assert "[DONE]" in text
+    assert "valid" in text.lower() and "sse" in text.lower()
+    assert "327" in text
     assert "phase4c-ordinal0-cache" in text
     assert "0.15.0" in text
     assert "exactly one" in text.lower()
     assert "HTTPScaledObject" in text
     assert "single-node lab" in text.lower()
+    assert "one" in text.lower() and "interceptor" in text.lower()
+    assert "beta" in text.lower()
     assert "not" in text.lower() and "production" in text.lower()
     assert "port-forward" in text.lower()
+    assert "0→2 was not tested" in text
+    assert "Prometheus-driven" in text and "1→2" in text
+    assert "interceptor-driven" in text and "0→1" in text
     for topic in ("9B", "Ingress", "NodePort", "LoadBalancer"):
         assert topic in text
     assert "not tested" in text.lower() or "not claimed" in text.lower()

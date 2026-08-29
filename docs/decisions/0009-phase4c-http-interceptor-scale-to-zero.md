@@ -83,11 +83,15 @@ Live closeout:
 - Warm interceptor SSE: HTTP 200, `X-KEDA-HTTP-Cold-Start: false`.
 - Automatic 1→0 on ScaledObject replacement: STS 0/0, both GPUs idle, both
   PVCs Bound, live `vllm:*` empty.
-- One no-retry cold-start: activation ~1 s, Ready 150 s, hold 152.4 s,
-  HTTP 200, `X-KEDA-HTTP-Cold-Start: true`, `[DONE]`, marker
-  `phase4c-ordinal0-cache` reused.
-- Second automatic 1→0 ~327 s after completion. Scaler `/metrics` on 2223
-  stayed up.
+- One **non-retried** request was held through a **150-second** model
+  startup (create → Ready). It returned HTTP **200**, valid SSE, non-empty
+  output, and `[DONE]`, with `X-KEDA-HTTP-Cold-Start: true`. Hold 152.4 s.
+  Marker `phase4c-ordinal0-cache` proved PVC reuse.
+- After completion, a **normal** second 1→0 took **approximately 327
+  seconds**. Both GPUs returned to idle, both PVCs stayed Bound, and live
+  `vllm:*` series disappeared again. Scaler `/metrics` on 2223 stayed up.
+- **HTTP 0→2 was not tested.** Phase 4B proved Prometheus-driven **1→2**.
+  Phase 4C proved interceptor-driven **0→1**.
 
 ## Consequences
 
@@ -96,6 +100,7 @@ Live closeout:
   and first-token time. Expect on the order of minutes, not milliseconds.
 - The interceptor is a new failure domain. If it dies at zero replicas, no
   client can wake vLLM.
-- HTTP Add-on is beta; this is a lab GO/NO-GO, not a production claim.
-- Phase 4B waiting-queue 1→N remains the historical capacity scaler and is
-  not live while the HTTP ScaledObject owns the StatefulSet.
+- HTTP Add-on is beta; this is a single-node lab GO/NO-GO with **one**
+  interceptor replica, not a production TLS/HA or serverless claim.
+- Phase 4B waiting-queue **1→2** remains the historical capacity scaler.
+  Phase 4C does not claim interceptor-driven **0→2**.

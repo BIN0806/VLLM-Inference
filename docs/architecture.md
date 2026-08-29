@@ -36,9 +36,16 @@ The authoring Mac is not `local-1gpu`. The GPU is remote.
 
 vLLM-only Prometheus series vanish when no vLLM pod exists, so they cannot wake
 a zero-replica service. Phase 4C keeps a durable KEDA HTTP Add-on 0.15.0
-interceptor (one replica, ClusterIP) in front of `svc/vllm`. Clients reach it
-only through SSH plus `kubectl port-forward`. That is a single-node lab
-validation; the add-on is beta and production TLS/HA are not proven.
+interceptor (**one** replica, ClusterIP) in front of `svc/vllm`. Clients reach
+it only through SSH plus `kubectl port-forward`. That is a **single-node lab**
+validation; the add-on is **beta** and production TLS/HA are not proven.
+
+Two scaler proofs stay distinct:
+
+- Phase 4B: Prometheus-driven **1→2** on `sum(vllm:num_requests_waiting)`.
+- Phase 4C: interceptor-driven **0→1** on HTTP concurrency.
+
+HTTP **0→2** was not tested.
 
 ## Configuration
 

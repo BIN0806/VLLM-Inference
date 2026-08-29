@@ -5,13 +5,16 @@ ports, host keys, tokens, credentials, instance IDs, kubeconfigs, or raw
 cluster dumps are recorded here.
 
 **Gate decision: GO for Phase 4C as a single-node lab validation.**
-**STOP before production TLS/HA, public HTTP, 9B, merge, and VM destroy.**
+**STOP before production TLS/HA, public HTTP, interceptor HA, 9B, and HTTP 0→2.**
 
-The KEDA HTTP Add-on is **beta**. The interceptor stayed ClusterIP and was
-reached only through SSH plus `kubectl port-forward`. kube-apiserver remained
-firewalled to loopback and cluster-internal ranges. No Ingress, NodePort,
-LoadBalancer, or public TLS was installed. This is **not** production
-serverless inference.
+This gate used **one** interceptor replica. The KEDA HTTP Add-on is **beta**.
+The interceptor stayed ClusterIP and was reached only through SSH plus
+`kubectl port-forward`. kube-apiserver remained firewalled to loopback and
+cluster-internal ranges. No Ingress, NodePort, LoadBalancer, or public TLS
+was installed. This is **not** production serverless inference.
+
+HTTP **0→2 was not tested**. Phase 4B proved Prometheus-driven **1→2**.
+Phase 4C proved interceptor-driven **0→1** (and 1→0 twice).
 
 ## Hardware and software (same VM as Phase 4B)
 
@@ -94,10 +97,11 @@ deactivation of an idle min=0 object, not a second client request.
 | Instant `count({__name__=~"vllm:.*"})` | empty vector |
 | Interceptor, HTTP scaler, KEDA, Prometheus | all Ready |
 
-## Cold-start hold (exactly one request, no client retry)
+## Cold-start hold (exactly one non-retried request)
 
 One streaming `POST /v1/chat/completions` through the interceptor
-port-forward. Client timeout **480 s**. The client did **not** retry.
+port-forward. The request was **held through a 150-second model startup**
+(create → Ready). Client timeout **480 s**. The client did **not** retry.
 
 | Instant (UTC) | Event |
 |---|---|
@@ -113,7 +117,7 @@ port-forward. Client timeout **480 s**. The client did **not** retry.
 | HTTP status | **200** (not 502/504) |
 | `X-KEDA-HTTP-Cold-Start` | **true** |
 | Hold / TTFT | **152.426 s** / **152.382 s** |
-| SSE | 11 chunks, non-empty output (34 chars), `[DONE]` |
+| SSE | valid event-stream; 11 chunks; non-empty output (34 chars); `[DONE]` |
 | Activation trigger | `s0-http_vllm_concurrency` (`KEDAScaleTargetActivated` 0→1) |
 | PVC reuse | marker `phase4c-ordinal0-cache` and hub dir `models--Qwen--Qwen2.5-1.5B-Instruct-AWQ` present |
 
@@ -134,7 +138,8 @@ warm ordinal-1 was 139–141 s). Weights were not re-downloaded.
 
 After the held request completed at 02:56:53, no further client traffic was
 sent. ScaledObject Active became False immediately. STS returned to **0/0**
-at **03:02:20** (**~327 s**, cooldownPeriod 300 plus scrape/reconcile).
+at **03:02:20**. That is the **normal** cooldown path: **approximately 327
+seconds** (cooldownPeriod 300 plus scrape/reconcile), not a forced scale.
 
 | Check after second 1→0 | Result |
 |---|---|
@@ -149,10 +154,11 @@ at **03:02:20** (**~327 s**, cooldownPeriod 300 plus scrape/reconcile).
 
 ## Not tested / not claimed
 
+- **HTTP 0→2.** Phase 4B proved Prometheus-driven **1→2**. Phase 4C proved
+  interceptor-driven **0→1**. The HTTP ScaledObject `maxReplicaCount` is 2,
+  but a second replica from interceptor concurrency was not exercised.
 - Production TLS, interceptor HA, Ingress, NodePort, LoadBalancer
-- Multi-replica interceptor (lab used one durable replica)
-- 1→2 on HTTP concurrency after min=0 (max remains 2; not exercised here)
-- `Qwen/Qwen3.5-9B`
+- Multi-replica interceptor (lab used **one** durable replica)
+- `Qwen/Qwen3.5-9B` autoscaling
 - Managed Kubernetes, multi-node Ray
-- Merging the draft PR
-- Destroying the Vast VM (PVCs die with the VM)
+- 5,000 output tokens/s
