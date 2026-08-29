@@ -1,5 +1,9 @@
 # Phase 4C status: HTTP interceptor scale-to-zero (single-node lab)
 
+> Accepted historical gate snapshot. The project was later merged and the VM
+> destroyed. HTTP 0→2, public TLS, and interceptor HA remain untested. See
+> [Final project status](../project-status.md).
+
 Sanitized closeout for the lab scale-to-zero gate. No IP addresses, SSH
 ports, host keys, tokens, credentials, instance IDs, kubeconfigs, or raw
 cluster dumps are recorded here.
@@ -152,13 +156,12 @@ seconds** (cooldownPeriod 300 plus scrape/reconcile), not a forced scale.
 | Interceptor / KEDA / Prometheus | Ready |
 | MemAvailable | **21 GiB** |
 
-## Not tested / not claimed
+## Goals after the Phase 4C checkpoint
 
-- **HTTP 0→2.** Phase 4B proved Prometheus-driven **1→2**. Phase 4C proved
-  interceptor-driven **0→1**. The HTTP ScaledObject `maxReplicaCount` is 2,
-  but a second replica from interceptor concurrency was not exercised.
-- Production TLS, interceptor HA, Ingress, NodePort, LoadBalancer
-- Multi-replica interceptor (lab used **one** durable replica)
-- `Qwen/Qwen3.5-9B` autoscaling
-- Managed Kubernetes, multi-node Ray
-- 5,000 output tokens/s
+- Exercise interceptor-driven **0→2**. Phase 4B completed Prometheus-driven
+  **1→2** and Phase 4C completed interceptor-driven **0→1**.
+- Add production TLS, authentication, Ingress, and interceptor HA.
+- Run multiple interceptor replicas with failure testing.
+- Autoscale independent `Qwen/Qwen3.5-9B` replicas on suitable GPUs.
+- Deploy on managed/multi-node Kubernetes and extend Ray across physical nodes.
+- Freeze a workload and evaluate the hardware needed for 5,000 output tokens/s.

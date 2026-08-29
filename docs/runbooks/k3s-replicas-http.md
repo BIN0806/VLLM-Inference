@@ -1,5 +1,9 @@
 # Phase 4C: HTTP interceptor scale-to-zero (single-node lab)
 
+> Historical/reproducibility procedure for the accepted Phase 4C gate. The
+> project was later merged, Compose-validated, and torn down. HTTP 0→2
+> remains untested. See [Final project status](../project-status.md).
+
 Single-node k3s, two GPUs, 1.5B AWQ StatefulSet. Install **KEDA HTTP Add-on
 0.15.0**, replace the Phase 4B Prometheus ScaledObject, and prove 1→0→1→0
 through the interceptor.

@@ -1,5 +1,10 @@
 # Phase 4B: KEDA 1→2→1 on the vLLM StatefulSet
 
+> Historical/reproducibility procedure for Phase 4B. Phase 4C later replaced
+> the live scaler for 0→1, and the VM was destroyed during final closeout.
+> The STOP rules below preserve safe gate isolation. See
+> [Final project status](../project-status.md).
+
 Single-node k3s, two GPUs, one warm 1.5B AWQ replica. Prove a **manual**
 second replica first, then install **KEDA 2.20.2 only** (no HTTP add-on) and
 scale 1→2→1 on aggregated `vllm:num_requests_waiting`.

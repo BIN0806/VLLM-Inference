@@ -1,5 +1,10 @@
 # Phase 4A: two-replica-capable k3s + Prometheus scrape
 
+> Historical/reproducibility procedure for Phase 4A. Later gates completed
+> KEDA and scale-to-zero, then destroyed the VM. Phase-specific STOP rules
+> below remain useful for rerunning one gate safely. See
+> [Final project status](../project-status.md).
+
 Single-node k3s, two schedulable NVIDIA GPUs, one warm **1.5B AWQ** vLLM
 replica as a StatefulSet, Prometheus scrape of `/metrics`. Access is SSH plus
 `kubectl port-forward` to loopback. Do not publish NodePort or a public HTTP

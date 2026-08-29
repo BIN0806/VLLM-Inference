@@ -1,5 +1,9 @@
 # k3s + NVIDIA on a GPU VM
 
+> Historical/reproducibility checklist. The Phase 3 and Phase 4 k3s gates
+> passed; the final VM was later destroyed. See
+> [Final project status](../project-status.md).
+
 Phase 3 first gate: single-node k3s, one GPU, one warm **1.5B AWQ** vLLM replica,
 TP=1, PP=1, no Ray, no Prometheus, no KEDA, no KubeRay. Access is SSH plus
 `kubectl port-forward` to loopback. Do not publish NodePort or a public HTTP URL.

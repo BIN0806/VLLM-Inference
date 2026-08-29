@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for Phase 0.
+Accepted and exercised through the completed Phase 4 lab.
 
 ## Decision
 
@@ -10,7 +10,12 @@ The first GPU validation path is **provider `vast` + compute `single-gpu`**, not
 
 The macOS machine is an authoring workstation only. CUDA/vLLM acceptance runs over SSH on a Linux NVIDIA rental. Future providers reuse the same compute profiles (`single-gpu`, `multi-gpu-tp`, `multi-gpu-replicas`, `ray-single-host`, `ray-multinode`, `k8s-replica`, `k8s-replica-zero`).
 
-The first Kubernetes production candidate remains `k8s-replica` (one complete replica per pod, minReplicas=1). Phase 3 accepted that topology for 1.5B AWQ on single-node k3s. EKS, GKE, KEDA, and 9B remain unvalidated.
+The Kubernetes lab progressed from `k8s-replica` (one warm replica) to
+`k8s-replicas` (one complete replica per GPU). Phase 3 accepted the first
+topology for 1.5B AWQ on single-node k3s. Phase 4 accepted Prometheus
+observability, KEDA 1→2→1, and HTTP-interceptor 0→1→0 on a two-GPU
+single-node k3s VM. EKS, GKE, multi-node Kubernetes, production TLS/HA, and
+9B autoscaling remain unvalidated.
 
 ## Consequences
 

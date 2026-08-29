@@ -1,5 +1,9 @@
 # Phase 3 acceptance (client path)
 
+> Historical/reproducibility client path. Phase 3 passed; later phases added
+> Prometheus and KEDA, and the final rental was destroyed. See
+> [Final project status](../project-status.md).
+
 Sanitized gate record: [k3s-replica-1.5b-status.md](k3s-replica-1.5b-status.md).
 
 Use after a single warm vLLM replica is **Ready** behind SSH-tunneled loopback.

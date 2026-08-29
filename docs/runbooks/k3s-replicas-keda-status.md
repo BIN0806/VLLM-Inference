@@ -1,5 +1,10 @@
 # Phase 4B status: KEDA 1→2→1 on the vLLM StatefulSet
 
+> Historical gate snapshot. Its “not tested” list is scoped to Phase 4B.
+> Phase 4C later proved HTTP-interceptor 0→1→0, PR #4 was merged, and the
+> VM was destroyed. HTTP 0→2 remains untested. See
+> [Final project status](../project-status.md).
+
 Sanitized closeout for the horizontal scaling gate. No IP addresses, SSH
 ports, host keys, tokens, credentials, instance IDs, kubeconfigs, or raw
 cluster dumps are recorded here.

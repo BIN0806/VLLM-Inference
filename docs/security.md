@@ -1,5 +1,14 @@
 # Security
 
+## Final lab state
+
+The Phase 4 rental was destroyed after graceful k3s and Compose shutdown.
+There is no live project inference endpoint, no local `:8000` listener, and no
+expected SSH tunnel. VM-local PVCs, model caches, and rental-scoped credentials
+were retired with the VM.
+
+## Controls and rules
+
 - Never commit `VLLM_API_KEY`, `HF_TOKEN`, `OPEN_BUTTON_TOKEN`, Vast API keys, GitHub credentials, kubeconfigs, or private keys.
 - `.env.example` contains placeholders only. Live values live in gitignored `.env.local`.
 - Authentication is optional for SSH-tunneled testing. An SSH local-forward to remote `127.0.0.1:18000` skips Vast Caddy.
@@ -11,10 +20,14 @@
 - First contact (`make ssh-scan-host`) captures a **candidate** key in a temporary file, prints the SHA256 fingerprint, and installs it only after `EXPECTED_FINGERPRINT=SHA256:...`, a matching fingerprint in a trusted `known_hosts` file, or `CONFIRM=yes`. It does not append `ssh-keyscan` output to `known_hosts` as if it were already verified. Keys are stored in the gitignored project file `.ssh/known_hosts` so Vast rentals do not pollute `~/.ssh/known_hosts`.
 - This GitHub repository is public. Never commit live SSH hosts, instance IDs, `.env.local`, private keys, `known_hosts`, Hugging Face tokens, or API keys. The implementation blueprint is gitignored.
 - Do not disable TLS verification against production endpoints. `VLLM_TLS_VERIFY` defaults to true.
-- **Security backlog (does not block Phase 2):** remote HTTPS clients must refuse to send `VLLM_API_KEY` or `OPEN_BUTTON_TOKEN` when `VLLM_TLS_VERIFY=false`, unless a prominent lab-only override is explicitly enabled. Phase 2 uses a loopback SSH tunnel, so this is not a Phase 2A gate.
+- **Unimplemented production guard:** a future remote HTTPS client should
+  refuse credentials when `VLLM_TLS_VERIFY=false` unless a separate,
+  prominent lab-only override is explicitly enabled. The accepted gates used
+  loopback SSH tunnels and did not require this production path.
 - `trust_remote_code` stays false unless a later ADR records a proven requirement for a specific model.
 - Preflight and reports redact secret names and values.
-- The current Vast filesystem is ephemeral. Do not store the only copy of source there.
+- Vast rental filesystems are ephemeral. Do not store the only copy of source
+  or evidence there.
 - Do not create, stop, restart, or destroy Vast instances from repository
   tooling. Closeout of an approved rental is an explicit operator action
   (console or vendor CLI), recorded in a sanitized runbook after the fact.
@@ -26,3 +39,10 @@
 - Destroying the Vast VM deletes k3s `local-path` PVCs, model caches, and
   any VM-local Compose volumes. Confirm deletion in the vendor UI/API before
   claiming the rental is gone.
+
+## Production security goals
+
+Extend the loopback lab boundary with public TLS termination, production
+authentication, Ingress/WAF policy, interceptor high availability, multi-node
+network policy, secret-manager integration, and a formal threat model before
+operating a public production edge.

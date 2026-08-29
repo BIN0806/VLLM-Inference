@@ -1,5 +1,9 @@
 # Phase 3 status: k3s 1.5B AWQ replica
 
+> Historical gate snapshot. Its “not tested” list is scoped to Phase 3.
+> Prometheus, KEDA 1→2, and HTTP 0→1 were later proven in Phase 4. See
+> [Final project status](../project-status.md).
+
 Sanitized closeout for the first Kubernetes gate. No IP addresses, SSH
 ports, host keys, tokens, credentials, instance IDs, kubeconfigs, or raw
 cluster dumps are recorded here.
@@ -136,22 +140,19 @@ PVC `vllm-model-cache`: **40Gi**, StorageClass **`local-path`**,
 
 k3s `local-path` keeps the model cache across **pod restarts on this VM**.
 It is node-local disk, **not** provider-persistent storage. **Destroying the
-Vast VM deletes the PVC and the model cache.** Closeout will destroy that
-VM after the merge, tag, and CI evidence are pushed. Do not describe this
-volume as a Vast persistent disk or an attachable volume.
+Vast VM deletes the PVC and the model cache.** The VM was later destroyed
+after merge, tag, and CI completion. Do not describe this volume as a Vast
+persistent disk or an attachable volume.
 
-## Not tested
+## Goals after the Phase 3 checkpoint
 
-The following were **not tested** in Phase 3 and are **not claimed**:
+- Add Prometheus scraping and metric validation (completed in Phase 4A).
+- Add KEDA horizontal scaling of complete replicas (completed in Phase 4B).
+- Add durable-front-door scale-to-zero (completed for 0→1→0 in Phase 4C).
+- Exercise a 9B Kubernetes profile on hardware and storage that pass a new fit
+  gate.
+- Extend Ray/KubeRay across multiple physical nodes.
+- Evaluate managed EKS/GKE or another multi-node Kubernetes environment.
 
-- **9B** (`vast-k3s-replica-9b` / `Qwen/Qwen3.5-9B`) was not deployed and
-  remains NO-GO on this filesystem.
-- **Ray** (KubeRay, Ray executor, multi-node Ray) was not installed.
-- **Prometheus** (kube-prometheus-stack or any scrape config) was not
-  installed. `/metrics` was fetched from the vLLM process only.
-- **KEDA** was not installed. Horizontal pod scaling was not demonstrated.
-- **Scale-to-zero** and the KEDA HTTP interceptor were not installed or
-  tested. `k8s-replica-zero` remains a later profile.
-
-No monitoring, KEDA, or Ray namespaces were present at closeout. EKS, GKE,
-and minikube are unvalidated.
+At the Phase 3 checkpoint, only the one-replica k3s namespace existed; later
+phase results are documented separately.

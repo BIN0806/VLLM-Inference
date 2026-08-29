@@ -1,6 +1,7 @@
 # Benchmark contract
 
-Classification: **development smoke and baseline benchmark**, not a production SLO.
+Classification: **development smoke, topology acceptance, and baseline
+benchmark**, not a production SLO.
 
 The figure “5,000 output tokens per second” is **aspirational**. It is not a Phase 1 acceptance criterion. Do not claim it unless a recorded run demonstrates it. Always report input-token throughput, output-token throughput, and request rate separately.
 
@@ -83,6 +84,30 @@ Measure at least:
 
 Raw per-request rows are written under `artifacts/phase1/` as JSON/JSONL. Warm-up is stored separately from steady-state.
 
-## Phase 1 gate vs performance
+## Accepted measurements
 
-Phase 1 passes on correctness, streaming, reliability, and a reproducible baseline. It does not fail merely because throughput is below 5,000 output tokens/sec.
+These results are preserved for interpretation, not as one cross-hardware
+leaderboard:
+
+| Gate | Hardware / topology | Output tok/s | Requests/s | TTFT p50/p95 | Interpretation |
+|---|---|---:|---:|---:|---|
+| Phase 1 | RTX 3090, 9B, TP=1 | ~90 | ~1.42 | ~2.1/4.2 s | Single-GPU streaming baseline |
+| Phase 2A | 2× RTX 3060, 9B, TP=2, native `mp` | ~17.13 | ~0.282 | ~14.2/28.5 s | Fit/correctness on constrained GPUs |
+| Phase 2B | Same Phase 2 host, TP=2, Ray | ~18.26 | ~0.289 | ~13.6/26.9 s | Controlled same-host executor comparison |
+| Phase 4B, one replica | RTX A4000, 1.5B AWQ | ~391 generation tok/s | ~1.03 | Prometheus window only | Capacity baseline |
+| Phase 4B, two replicas | 2× RTX A4000, one replica/GPU | ~778 generation tok/s | ~2.03 | Prometheus window only | About 2× aggregate ClusterIP capacity |
+
+The Phase 4B rows use Prometheus server counters over matched loaded windows,
+not the Phase 1/2 client benchmark schema. The in-cluster load-generator logs
+were deleted, so the load-distribution addendum does not claim a measured
+client error rate.
+
+## Gate correctness versus performance
+
+A phase passes on its stated correctness, streaming, reliability, topology,
+and reproducibility criteria. It does not fail merely because throughput is
+below 5,000 output tokens/s. The finished project still does not claim that
+target.
+
+See [Final project status](project-status.md) for the complete evidence and
+cross-phase boundaries.

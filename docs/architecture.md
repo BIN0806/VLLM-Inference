@@ -1,67 +1,211 @@
 # Architecture
 
-This platform serves pretrained models with vLLM. It does not train or fine-tune.
+This platform serves pretrained language models. It does not train or
+fine-tune them. The completed implementation validates three related
+topologies: a single GPU container, one model replica sharded across GPUs, and
+multiple independent Kubernetes replicas.
 
-## Replica model
+## Design principles
+
+1. **Fit and capacity are different problems.** Tensor parallelism helps one
+   model fit or execute across GPUs. Independent replicas add request capacity.
+2. **A replica is the scaling unit.** TP/PP/Ray ranks are inseparable parts of
+   one replica. Kubernetes and KEDA scale complete replicas.
+3. **Hardware is discovered.** GPU count, VRAM, topology, driver, disk, and RAM
+   are rental-specific inputs, never project-wide constants.
+4. **Fallback is fail-closed.** A model, TP, or hardware fallback requires an
+   explicit flag and cannot pass the original gate.
+5. **Zero replicas needs a durable signal.** vLLM metrics vanish at zero, so an
+   interceptor must observe traffic and wake the service.
+6. **Evidence is phase-scoped.** Results from different GPUs or workloads are
+   not treated as topology speedups.
+
+## Logical components
+
+| Layer | Component | Responsibility |
+|---|---|---|
+| Client | Raw HTTPX SSE client and load generators | Validate OpenAI-compatible streaming, timing, concurrency, and terminal events |
+| Engine | vLLM 0.27.1 | Model execution, PagedAttention, continuous batching, KV cache, API, metrics |
+| Distributed execution | Native `mp` or Ray | Place and coordinate TP ranks for one replica |
+| Container | Pinned Dockerfile/Compose | Smallest reproducible single-GPU serving path |
+| Orchestrator | k3s/Kubernetes | GPU scheduling, lifecycle, probes, Services, PVCs, scale target |
+| GPU integration | NVIDIA Container Toolkit, RuntimeClass, device plugin | Make GPUs allocatable and enforce one GPU request per replica |
+| Observability | Prometheus + ServiceMonitor | Scrape and query per-replica vLLM metrics |
+| Warm autoscaling | KEDA Prometheus scaler | Add/remove complete replicas from total waiting queue depth |
+| Zero activation | KEDA HTTP Add-on interceptor | Stay available at zero, observe concurrency, hold the request, activate 0→1 |
+
+## Topologies
+
+### One complete replica on one GPU
 
 ```text
-Clients
-  -> KEDA HTTP interceptor ClusterIP (lab; SSH + port-forward only)
-    -> stable router
-      -> complete inference replica A (vLLM, 1..N GPUs)
-      -> complete inference replica B
-      -> ...
+client -> vLLM API -> model replica -> GPU
 ```
 
-- **Tensor parallelism (TP)** shards one replica across GPUs. It is a model-fit choice.
-- **Pipeline parallelism (PP)** places layer groups on different workers. Prefer TP within a node and PP across nodes when a later multi-node profile exists.
-- **Independent replicas** put one complete model copy on each GPU to raise request throughput. This is not TP.
-- **Kubernetes replicas** are complete serving units. KEDA must add or remove whole replicas, never individual TP/PP ranks.
-- **Ray multi-node** is one distributed topology spanning independently scheduled hosts. A single multi-GPU machine using Ray is `ray-single-host`, not multi-node.
+Used for the Phase 1 9B validation, Phase 3/4 1.5B AWQ replicas, and the final
+Compose gate. The model, context, concurrency, and GPU memory utilization must
+fit one GPU.
 
-## Environments
+### One complete replica sharded across two GPUs
 
-| Environment | Role | GPU gate |
-|---|---|---|
-| macOS authoring workstation | Docs, lint, unit tests, HTTP client | Not applicable |
-| Provider overlay + compute profile (currently `vast` + `single-gpu`) | Real CUDA/vLLM validation over SSH | Required, remote |
-| `k8s-replica` | First Kubernetes MVP, minReplicas=1 | Phase 3 1.5B AWQ on k3s accepted |
-| `k8s-replicas` | Two-replica-capable StatefulSet, one GPU per pod | Phase 4C: HTTP interceptor lab scale-to-zero; Phase 4B 1→2→1 retained as historical scaler |
-| `k8s-replica-zero` | Documented zero-replica profile | Validated via the existing StatefulSet + HTTP ScaledObject; renderer still refuses replica_count 0 |
-| Docker Compose (`docker/compose.yaml`) | One pinned vLLM container, loopback publish | Closeout GO: 1.5B AWQ on GPU 0 after k3s stop; not 9B |
-| `ray-multinode` | True multi-node | `NOT RUN — HARDWARE UNAVAILABLE` |
+```text
+client -> vLLM API -> rank 0 on GPU 0
+                   -> rank 1 on GPU 1
+```
 
-The authoring Mac is not `local-1gpu`. The GPU is remote.
+Phase 2A used native multiprocessing; Phase 2B used a same-host Ray placement
+group. Both were TP=2 for one Qwen3.5-9B replica. They do not provide two
+independent request-serving replicas.
 
-## Scale-to-zero
+### Two independent one-GPU replicas
 
-vLLM-only Prometheus series vanish when no vLLM pod exists, so they cannot wake
-a zero-replica service. Phase 4C keeps a durable KEDA HTTP Add-on 0.15.0
-interceptor (**one** replica, ClusterIP) in front of `svc/vllm`. Clients reach
-it only through SSH plus `kubectl port-forward`. That is a **single-node lab**
-validation; the add-on is **beta** and production TLS/HA are not proven.
+```text
+                         +-> vLLM-0 -> GPU 0 -> PVC 0
+client -> ClusterIP svc -+
+                         +-> vLLM-1 -> GPU 1 -> PVC 1
+```
 
-Two scaler proofs stay distinct:
+Phase 4 used one TP=1 replica per GPU. This is the topology that approximately
+doubled aggregate throughput after the second pod became Ready.
 
-- Phase 4B: Prometheus-driven **1→2** on `sum(vllm:num_requests_waiting)`.
-- Phase 4C: interceptor-driven **0→1** on HTTP concurrency.
+## Kubernetes request path
 
-HTTP **0→2** was not tested.
+```text
+SSH-tunneled client
+  -> KEDA HTTP interceptor ClusterIP
+    -> svc/vllm ClusterIP
+      -> Ready StatefulSet endpoints
+        -> one GPU and one ordinal PVC per pod
+```
 
-## Configuration
+- The StatefulSet gives each replica a stable ordinal and its own RWO
+  `local-path` cache PVC.
+- Each pod requests `nvidia.com/gpu: 1` and uses
+  `runtimeClassName: nvidia`.
+- `enableServiceLinks: false` prevents Kubernetes from injecting an invalid
+  `VLLM_PORT=tcp://…` value.
+- The startup probe tolerates model load; readiness removes unready replicas
+  from the Service; liveness detects a stuck server after startup.
+- The Service is ClusterIP. The lab did not publish inference publicly.
 
-Independent layers: provider/connection, hardware topology, model, serving, workload, deployment environment. Composed profiles live in `configs/profiles/`. Connection details are environment variables, never committed IPs or keys.
+## Observability path
 
-## Fallback
+```text
+vLLM /metrics
+  -> per-replica metrics Service
+    -> ServiceMonitor
+      -> Prometheus
+        -> PromQL / acceptance checks / KEDA trigger
+```
 
-Default is fail-fast. TP, model, and offline-test fallbacks require explicit flags, prominent console output, and a report field. A fallback result cannot pass the originally requested hardware gate.
+Recorded families include running and waiting request gauges, KV-cache use,
+prompt and generation token counters, request outcomes, TTFT histograms, and
+end-to-end latency histograms.
 
-## Remote host
+Histogram quantiles are meaningful only with aligned windows and adequate
+samples. The project records counts and sums and treats short-window p95 values
+as observability validation rather than a production latency SLO.
 
-Vast rentals are ephemeral and have no persistent volume. Git on the authoring workstation is the source of truth. Model caches and logs on the rental are disposable. SSH uses the user agent, never reads private-key contents, and never disables host-key checking. First-contact host keys are stored in the project `.ssh/known_hosts` file after fingerprint verification.
+## Autoscaling paths
 
-The repository Compose path is a single-container lab serve: pinned
-`docker/Dockerfile` + `docker/compose.yaml`, `HOST_BIND=127.0.0.1`, SSH
-tunnel from the authoring Mac. It is not a replica scaler and is not a
-public bind. Live closeout:
-[compose-1.5b-status.md](runbooks/compose-1.5b-status.md).
+### Warm 1→2→1
+
+Phase 4B used:
+
+```text
+sum(vllm:num_requests_waiting)
+  -> KEDA Prometheus trigger (metricType: Value, threshold: 1)
+    -> HPA
+      -> StatefulSet replicas 1..2
+```
+
+Waiting work is a better overflow signal than running work because
+`max_num_seqs` caps admitted sequences. `metricType: Value` is required
+because the query already returns one cluster-wide total.
+
+### Zero 0→1→0
+
+Phase 4C used:
+
+```text
+HTTP request
+  -> durable interceptor concurrency
+    -> external-push scaler
+      -> KEDA/HPA
+        -> StatefulSet 0..2
+```
+
+The accepted gate exercised 0→1 and a later normal 1→0. It did not exercise
+interceptor-driven 0→2. The add-on was beta and used one interceptor replica,
+so this is not a production availability or HA claim.
+
+Only one ScaledObject/HPA may control `StatefulSet/vllm` at a time. Phase 4C
+replaced the Phase 4B Prometheus ScaledObject instead of running competing
+controllers.
+
+## Storage
+
+Each StatefulSet ordinal owns one 10 GiB `local-path` RWO PVC. This avoids
+concurrent writes to one Hugging Face cache and lets a scaled-in ordinal reuse
+its cache when it returns.
+
+`local-path` is node-local:
+
+- survives pod deletion and recreation on the same VM;
+- remains Bound during StatefulSet scale-in;
+- does not survive node or Vast VM destruction;
+- is not provider-persistent or multi-node shared storage.
+
+A production multi-node version would require explicit object-backed model
+distribution, image-baked weights, or a suitable RWX/provider-persistent
+strategy.
+
+## Configuration layers
+
+Profiles compose independent provider, compute, model, serving, workload, and
+environment layers:
+
+```text
+provider/connection + hardware + model + serving + workload + environment
+                              -> composed profile
+```
+
+Changing rentals should change connection and discovered hardware values, not
+model or benchmark semantics. Model and image revisions remain immutable.
+
+## Runtime separation
+
+The authoring Mac runs docs, lint, unit tests, rendering, preflight, clients,
+and SSH forwarding. It is not an NVIDIA host and cannot pass GPU acceptance.
+
+The k3s path uses embedded containerd. The Compose path uses Docker. NVIDIA
+runtime configuration for one must not be written into the other. The final
+Compose gate needed Docker-specific NVIDIA Toolkit/CDI configuration after
+k3s was stopped.
+
+## Security boundary
+
+- Live access stayed on loopback through SSH.
+- Inference, metrics, and interceptor Services stayed ClusterIP.
+- Host-key checking remained enabled.
+- Secrets and rental identifiers stayed in ignored local files.
+- `trust_remote_code` remained false.
+- No public TLS, Ingress, NodePort, LoadBalancer, or interceptor HA was
+  installed.
+
+## Lifecycle and final state
+
+The final lab progressed from one warm replica, through Prometheus and KEDA,
+to scale-to-zero. Closeout then:
+
+1. closed port-forwards;
+2. stopped k3s gracefully;
+3. ran the repository Compose acceptance on GPU 0;
+4. brought Compose down;
+5. confirmed no listener or GPU compute process remained;
+6. deleted the Vast VM and confirmed later SSH failure.
+
+The VM-local PVCs and caches were intentionally lost with the rental. Git and
+the tracked, sanitized runbooks are the source of truth.
+
+See [Final project status](project-status.md) for the evidence and claim matrix.

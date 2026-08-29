@@ -1,5 +1,9 @@
 # Compose validation: one 1.5B AWQ container on GPU 0
 
+> Final accepted Compose evidence. The container was brought down and the
+> rental was destroyed after this gate. See
+> [Final project status](../project-status.md).
+
 Sanitized closeout for the repository Docker Compose path. No IP addresses,
 SSH ports, host keys, tokens, credentials, instance IDs, kubeconfigs, or raw
 container dumps are recorded here.
