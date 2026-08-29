@@ -56,9 +56,10 @@ accepted Prometheus scrape of one StatefulSet replica. Phase 4B accepted
 Prometheus-driven KEDA **1→2→1**. Phase 4C accepted interceptor-driven lab
 **0→1** (one non-retried held request, 150 s Ready, HTTP 200 SSE) and a
 normal second **1→0** (~327 s). HTTP **0→2**, 9B autoscaling, Ray,
-production TLS/HA, and managed Kubernetes are **not claimed**. Docker
-Compose on a GPU host is a remaining closeout gap unless a tracked report
-proves it.
+production TLS/HA, and managed Kubernetes are **not claimed**. Repository
+Docker Compose served one 1.5B AWQ container on GPU 0 over SSH-tunneled
+loopback after k3s stopped; see
+[compose-1.5b-status.md](docs/runbooks/compose-1.5b-status.md).
 
 ## Setup (authoring)
 

@@ -6,10 +6,13 @@ through the interceptor.
 
 Access is SSH plus `kubectl port-forward` to loopback. Do not publish
 Ingress, NodePort, LoadBalancer, or a public HTTP URL. Do not deploy 9B.
-Do not destroy the VM from this gate. Do not merge `phase-4`.
+This gate does not destroy the VM or merge `phase-4`. Those are a later
+operator closeout: [vast-rental-closeout.md](vast-rental-closeout.md).
 
-Live sanitized closeout:
+Live sanitized 4C closeout:
 [k3s-replicas-http-status.md](k3s-replicas-http-status.md).
+Compose 1.5B validation (after k3s stop):
+[compose-1.5b-status.md](compose-1.5b-status.md).
 
 ## Pins
 

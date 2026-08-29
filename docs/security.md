@@ -20,7 +20,9 @@
   (console or vendor CLI), recorded in a sanitized runbook after the fact.
 - Phase 4C kept the HTTP interceptor on ClusterIP and reached it only through
   SSH plus `kubectl port-forward`. That is **not** public TLS or interceptor
-  HA. Compose, if used, publishes on `127.0.0.1` and is reached the same way.
+  HA. The accepted Compose closeout published on `127.0.0.1:8000` and was
+  reached the same way (SSH local-forward). There was no public `:8000`
+  listener.
 - Destroying the Vast VM deletes k3s `local-path` PVCs, model caches, and
   any VM-local Compose volumes. Confirm deletion in the vendor UI/API before
   claiming the rental is gone.

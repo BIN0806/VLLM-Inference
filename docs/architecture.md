@@ -28,6 +28,7 @@ Clients
 | `k8s-replica` | First Kubernetes MVP, minReplicas=1 | Phase 3 1.5B AWQ on k3s accepted |
 | `k8s-replicas` | Two-replica-capable StatefulSet, one GPU per pod | Phase 4C: HTTP interceptor lab scale-to-zero; Phase 4B 1→2→1 retained as historical scaler |
 | `k8s-replica-zero` | Documented zero-replica profile | Validated via the existing StatefulSet + HTTP ScaledObject; renderer still refuses replica_count 0 |
+| Docker Compose (`docker/compose.yaml`) | One pinned vLLM container, loopback publish | Closeout GO: 1.5B AWQ on GPU 0 after k3s stop; not 9B |
 | `ray-multinode` | True multi-node | `NOT RUN — HARDWARE UNAVAILABLE` |
 
 The authoring Mac is not `local-1gpu`. The GPU is remote.
@@ -58,3 +59,9 @@ Default is fail-fast. TP, model, and offline-test fallbacks require explicit fla
 ## Remote host
 
 Vast rentals are ephemeral and have no persistent volume. Git on the authoring workstation is the source of truth. Model caches and logs on the rental are disposable. SSH uses the user agent, never reads private-key contents, and never disables host-key checking. First-contact host keys are stored in the project `.ssh/known_hosts` file after fingerprint verification.
+
+The repository Compose path is a single-container lab serve: pinned
+`docker/Dockerfile` + `docker/compose.yaml`, `HOST_BIND=127.0.0.1`, SSH
+tunnel from the authoring Mac. It is not a replica scaler and is not a
+public bind. Live closeout:
+[compose-1.5b-status.md](runbooks/compose-1.5b-status.md).

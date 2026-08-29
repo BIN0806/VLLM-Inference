@@ -99,6 +99,8 @@ def test_model_layer_yaml_is_tracked() -> None:
         "infra/keda/servicemonitor-http-addon.yaml",
         "docs/runbooks/k3s-replicas-http.md",
         "docs/runbooks/k3s-replicas-http-status.md",
+        "docs/runbooks/compose-1.5b-status.md",
+        "docs/runbooks/vast-rental-closeout.md",
         "docs/decisions/0009-phase4c-http-interceptor-scale-to-zero.md",
         "docs/runbooks/vast-k3s-rental.md",
         "docs/runbooks/k3s-nvidia.md",
@@ -202,6 +204,41 @@ def test_k3s_replicas_http_status_records_lab_scale_to_zero() -> None:
     for topic in ("9B", "Ingress", "NodePort", "LoadBalancer"):
         assert topic in text
     assert "not tested" in text.lower() or "not claimed" in text.lower()
+
+
+@pytest.mark.unit
+def test_compose_1_5b_status_records_loopback_sse() -> None:
+    text = (repo_root() / "docs/runbooks/compose-1.5b-status.md").read_text(encoding="utf-8")
+    assert "does not weaken" in text.lower()
+    assert "1.5B" in text or "1.5b" in text
+    assert "127.0.0.1" in text
+    assert "10/10" in text
+    assert "[DONE]" in text
+    assert "GPU 0" in text or "GPU0" in text
+    assert "0 MiB" in text
+    assert "no public" in text.lower() or "none" in text.lower()
+    assert "nvidia-ctk runtime configure --runtime=docker" in text
+    assert "systemctl stop k3s" in text
+    assert "SIGKILL" in text
+    assert "docker compose" in text.lower()
+    assert "0→2 was not tested" in text
+    assert "vast-single-gpu" in text
+    for topic in ("9B", "Phase 4A", "Phase 4B", "Phase 4C"):
+        assert topic in text
+
+
+@pytest.mark.unit
+def test_vast_rental_closeout_records_stop_order() -> None:
+    text = (repo_root() / "docs/runbooks/vast-rental-closeout.md").read_text(encoding="utf-8")
+    assert "systemctl stop k3s" in text
+    assert "SIGKILL" in text
+    assert "SIGTERM" in text
+    assert "local-path" in text
+    assert "0/0" in text
+    assert "HTTPScaledObject" in text
+    assert "compose-1.5b-status.md" in text
+    assert "0→2" in text
+    assert "operator" in text.lower()
 
 
 @pytest.mark.unit

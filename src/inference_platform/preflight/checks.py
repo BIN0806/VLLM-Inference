@@ -106,12 +106,12 @@ def check_docker() -> CheckResult:
             text=True,
             timeout=8,
         )
-    except OSError as exc:
+    except (OSError, subprocess.TimeoutExpired) as exc:
         return CheckResult(
             name="docker",
             status="WARN",
-            summary=f"Docker CLI is present but could not be executed ({exc})",
-            remediation="Start OrbStack or Docker Desktop if you need compose.",
+            summary=f"Docker CLI is present but the daemon is not reachable ({exc.__class__.__name__})",
+            remediation="Start OrbStack or Docker Desktop if you need compose. Not required for Phase 0 unit tests.",
             details=details,
         )
     if info.returncode != 0:
