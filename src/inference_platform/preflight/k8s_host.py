@@ -310,6 +310,15 @@ def evaluate_k8s_host(
                 details={"vram_mib": facts.gpu_vram_mib, "names": facts.gpu_names},
             )
         )
+    if config.compute and config.compute.id == "k8s-replicas" and facts.gpu_count < 2:
+        results.append(
+            CheckResult(
+                "gpu-replicas",
+                "FAIL",
+                f"k8s-replicas needs two physical NVIDIA GPUs (have {facts.gpu_count})",
+                remediation="Rent a two-GPU VM. Do not set TP=2 or switch to 9B to compensate.",
+            )
+        )
 
     if not facts.driver_version:
         results.append(
@@ -384,22 +393,29 @@ def evaluate_k8s_host(
                     remediation="Install NVIDIA Container Toolkit per docs/runbooks/k3s-nvidia.md after approval.",
                 )
             )
+        wanted = 2 if (config.compute and config.compute.id == "k8s-replicas") else 1
         if facts.nvidia_gpu_allocatable is None:
             results.append(
                 CheckResult(
                     "nvidia.com/gpu",
                     "WARN",
                     "nvidia.com/gpu allocatable count is unknown",
-                    remediation="After the device plugin is installed, confirm kubectl describe node shows nvidia.com/gpu: 1.",
+                    remediation=(
+                        "After the device plugin is installed, confirm kubectl describe node "
+                        f"shows nvidia.com/gpu: {wanted}."
+                    ),
                 )
             )
-        elif facts.nvidia_gpu_allocatable < 1:
+        elif facts.nvidia_gpu_allocatable < wanted:
             results.append(
                 CheckResult(
                     "nvidia.com/gpu",
                     "FAIL",
-                    "Node does not advertise nvidia.com/gpu",
-                    remediation="Install NVIDIA device plugin 0.20.0. Do not hide it inside the app Deployment.",
+                    (
+                        "Node does not advertise enough nvidia.com/gpu "
+                        f"(have {facts.nvidia_gpu_allocatable}, need {wanted})"
+                    ),
+                    remediation="Install NVIDIA device plugin 0.20.0. Do not hide it inside the app workload.",
                 )
             )
         else:

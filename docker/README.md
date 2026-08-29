@@ -14,7 +14,11 @@ CUDA 13.0.
 Shared memory uses `shm_size: 8gb` plus `ipc: host` as the reviewed strategy.
 
 Compose GPU allocation requires a Linux NVIDIA container runtime. It will not
-run on the macOS authoring workstation.
+run on the macOS authoring workstation. If `gpus: all` fails with an empty
+device driver, configure the toolkit for Docker (`nvidia-ctk runtime configure
+--runtime=docker`) and restart Docker. Do not rewrite the k3s containerd
+template. Live 1.5B closeout:
+[compose-1.5b-status.md](../docs/runbooks/compose-1.5b-status.md).
 
 ## Environment interpolation
 

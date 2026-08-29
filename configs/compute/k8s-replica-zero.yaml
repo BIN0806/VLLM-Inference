@@ -6,13 +6,14 @@ pipeline_parallel_size: 1
 distributed_executor_backend: mp
 replica_count: 0
 min_replicas: 0
-max_replicas: null
+max_replicas: 2
 scaling_unit: complete-replica
 horizontal_scaling: true
 scaler: keda-http-addon
 requires_durable_interceptor: true
-status: later-profile
+status: phase4c-lab-via-k8s-replicas
 notes: |
   vLLM Prometheus metrics disappear when no replica exists, so they cannot
-  wake a zero-replica service. The KEDA HTTP Add-on interceptor (or an
-  explicitly approved equivalent) must remain available. Later profile only.
+  wake a zero-replica service. Phase 4C validated KEDA HTTP Add-on 0.15.0
+  against the existing k8s-replicas StatefulSet rather than rendering this
+  profile (the renderer still refuses replica_count 0). Max 2 on this host.

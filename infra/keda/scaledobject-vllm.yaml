@@ -1,0 +1,38 @@
+# Live Phase 4C ScaledObject. Scale StatefulSet vllm on interceptor
+# concurrency via the KEDA HTTP Add-on external-push scaler.
+# Apply InterceptorRoute first. Delete the Prometheus ScaledObject before
+# applying this file so exactly one HPA owns the StatefulSet.
+# Do not create kind: HTTPScaledObject.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: vllm
+  namespace: inference
+  labels:
+    app: inference-platform
+    component: vllm
+    scaler: http-external-push
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: vllm
+  pollingInterval: 15
+  cooldownPeriod: 300
+  minReplicaCount: 0
+  maxReplicaCount: 2
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 60
+          selectPolicy: Min
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.keda:9090
+        interceptorRoute: vllm

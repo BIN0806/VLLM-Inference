@@ -20,11 +20,16 @@ Pin exact versions or immutable digests. Never commit `latest`. Record the offic
 | Ray (optional extra) | 2.58.0 | PyPI | Pin for later; image-bundled Ray may differ and must be discovered |
 | kubernetes (optional extra) | 36.0.3 | PyPI | Pin for later |
 | KubeRay | 1.7.0 | GitHub | Later |
-| kube-prometheus-stack | chart 88.6.0 | prometheus-community | Later |
-| KEDA | 2.20.2 | kedacore/charts | Later |
-| KEDA HTTP Add-on | 0.15.0 | kedacore/http-add-on | Later |
-| NVIDIA device plugin | 0.20.0 | NVIDIA/k8s-device-plugin | Phase 3 cluster GPU advertise |
-| k3s | v1.34.10+k3s1 (Kubernetes v1.34.10, linux/amd64 sha256 e63a3511b2603fd1436a1ea8d228348a3b47334b45024801d41a8c0e2d22e8c4) | https://get.k3s.io / GitHub release | Phase 3 single-node; 1.33–1.35 window |
+| kube-prometheus-stack | chart 88.6.0 | prometheus-community | Phase 4A scrape (Grafana/Alertmanager off) |
+| KEDA | 2.20.2 | kedacore/charts | Phase 4B StatefulSet 1→2→1 |
+| KEDA HTTP Add-on | 0.15.0 | kedacore/http-add-on | Phase 4C lab scale-to-zero |
+| HTTP add-on operator | sha256:d579b952ff0a0c3046a49d0e066bc06d33d1944b5f89b5fac5145d89f9f78959 | ghcr.io tag 0.15.0 | Resolved on the lab cluster |
+| HTTP add-on scaler | sha256:f748178bc4af9e546d5da38c4e1b1d8d236a343bb30927b292131c6f4c978394 | ghcr.io tag 0.15.0 | Resolved on the lab cluster |
+| HTTP add-on interceptor | sha256:4e88e7808652e7c438f66d67bc8a53ce6261b6081c81475bd4758602460af499 | ghcr.io tag 0.15.0 | Resolved on the lab cluster |
+| NVIDIA device plugin | 0.20.0 | NVIDIA/k8s-device-plugin | Phase 3/4 cluster GPU advertise |
+| NVIDIA Container Toolkit | 1.18.0-1 | NVIDIA libnvidia-container apt | Phase 4A k3s NVIDIA runtime |
+| Helm | v3.16.4 | get-helm-3 | Phase 4A chart install |
+| k3s | v1.34.10+k3s1 (Kubernetes v1.34.10, linux/amd64 sha256 e63a3511b2603fd1436a1ea8d228348a3b47334b45024801d41a8c0e2d22e8c4) | https://get.k3s.io / GitHub release | Phase 3/4 single-node; 1.33–1.35 window |
 
 The Vast rental image is **not** assumed to be the official digest. Set `VLLM_IMAGE` per host. CUDA 13.0 is a property of the current rental’s driver (580.159.03), not a global invariant.
 

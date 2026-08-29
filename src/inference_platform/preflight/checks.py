@@ -106,12 +106,12 @@ def check_docker() -> CheckResult:
             text=True,
             timeout=8,
         )
-    except OSError as exc:
+    except (OSError, subprocess.TimeoutExpired) as exc:
         return CheckResult(
             name="docker",
             status="WARN",
-            summary=f"Docker CLI is present but could not be executed ({exc})",
-            remediation="Start OrbStack or Docker Desktop if you need compose.",
+            summary=f"Docker CLI is present but the daemon is not reachable ({exc.__class__.__name__})",
+            remediation="Start OrbStack or Docker Desktop if you need compose. Not required for Phase 0 unit tests.",
             details=details,
         )
     if info.returncode != 0:
@@ -232,7 +232,7 @@ def check_shared_memory() -> CheckResult:
 
 def check_kubernetes(config: ResolvedConfig) -> CheckResult:
     compute_id = None if config.compute is None else config.compute.id
-    if compute_id not in {"k8s-replica", "k8s-replica-zero"}:
+    if compute_id not in {"k8s-replica", "k8s-replicas", "k8s-replica-zero"}:
         return CheckResult(
             name="kubernetes",
             status="SKIP",

@@ -1,0 +1,40 @@
+# Historical Phase 4B Prometheus ScaledObject. Do not apply this while the
+# HTTP external-push ScaledObject in scaledobject-vllm.yaml is live. Two
+# ScaledObjects (or HPAs) must not target StatefulSet vllm at the same time.
+# Keep this file as the 1→2→1 waiting-queue configuration.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: vllm
+  namespace: inference
+  labels:
+    app: inference-platform
+    component: vllm
+    scaler: prometheus-waiting-queue
+    phase: "4b-historical"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: vllm
+  pollingInterval: 15
+  minReplicaCount: 1
+  maxReplicaCount: 2
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 60
+          selectPolicy: Min
+  triggers:
+    - type: prometheus
+      metricType: Value
+      metadata:
+        serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+        query: sum(vllm:num_requests_waiting)
+        threshold: "1"
+        ignoreNullValues: "false"

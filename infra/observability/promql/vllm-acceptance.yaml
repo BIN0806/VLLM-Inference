@@ -1,0 +1,25 @@
+# PromQL acceptance for Phase 4A. Confirm live series names against vLLM 0.27.1
+# /metrics before using these in a scaler. KEDA is not installed in this gate.
+#
+# histogram_quantile p95 queries validate scrape, not SLOs. Always pair them
+# with the matching histogram _count and _sum over the same range. Sparse or
+# differently sampled windows can invert TTFT versus E2E; do not compare those
+# two p95s as a latency ranking.
+
+series:
+  - vllm:num_requests_running
+  - vllm:num_requests_waiting
+  - vllm:kv_cache_usage_perc
+  - vllm:prompt_tokens_total
+  - vllm:generation_tokens_total
+  - vllm:time_to_first_token_seconds
+  - vllm:e2e_request_latency_seconds
+
+queries:
+  num_requests_running: sum(vllm:num_requests_running)
+  num_requests_waiting: sum(vllm:num_requests_waiting)
+  kv_cache_usage_perc: avg(vllm:kv_cache_usage_perc)
+  prompt_tokens_total: sum(vllm:prompt_tokens_total)
+  generation_tokens_total: sum(vllm:generation_tokens_total)
+  ttft_p95: histogram_quantile(0.95, sum(rate(vllm:time_to_first_token_seconds_bucket[5m])) by (le))
+  e2e_p95: histogram_quantile(0.95, sum(rate(vllm:e2e_request_latency_seconds_bucket[5m])) by (le))

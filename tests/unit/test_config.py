@@ -3,8 +3,31 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
-from inference_platform.config import load_pins, load_profile
+from inference_platform.config import ProfileK8sConfig, load_pins, load_profile
+
+
+@pytest.fixture(autouse=True)
+def _isolate_config_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "COMPUTE_PROFILE",
+        "MODEL_CONFIG",
+        "INFERENCE_PROFILE",
+        "VLLM_MODEL",
+        "VLLM_TENSOR_PARALLEL_SIZE",
+        "VLLM_PIPELINE_PARALLEL_SIZE",
+        "VLLM_MAX_MODEL_LEN",
+        "VLLM_MAX_NUM_SEQS",
+        "DISTRIBUTED_EXECUTOR_BACKEND",
+        "K8S_PVC_SIZE",
+        "K8S_CPU_REQUEST",
+        "K8S_CPU_LIMIT",
+        "K8S_MEMORY_REQUEST",
+        "K8S_MEMORY_LIMIT",
+        "K8S_SHM_SIZE",
+    ):
+        monkeypatch.delenv(name, raising=False)
 
 
 @pytest.mark.unit
@@ -40,6 +63,43 @@ def test_vast_single_gpu_uses_9b_override() -> None:
     assert config.fallback_model is not None
     assert config.fallback_model.model_id == "Qwen/Qwen2.5-1.5B-Instruct-AWQ"
     assert config.tensor_parallel_size == 1
+
+
+@pytest.mark.unit
+def test_vast_k3s_replicas_is_stateful_1_5b(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COMPUTE_PROFILE", raising=False)
+    monkeypatch.delenv("MODEL_CONFIG", raising=False)
+    monkeypatch.delenv("VLLM_MODEL", raising=False)
+    monkeypatch.delenv("K8S_PVC_SIZE", raising=False)
+    monkeypatch.delenv("K8S_CPU_REQUEST", raising=False)
+    monkeypatch.delenv("K8S_CPU_LIMIT", raising=False)
+    monkeypatch.delenv("K8S_MEMORY_REQUEST", raising=False)
+    monkeypatch.delenv("K8S_MEMORY_LIMIT", raising=False)
+    monkeypatch.delenv("K8S_SHM_SIZE", raising=False)
+    config = load_profile("vast-k3s-replicas")
+    assert config.compute is not None
+    assert config.compute.id == "k8s-replicas"
+    assert config.k8s_kind() == "StatefulSet"
+    assert config.k8s_replicas() == 1
+    assert config.compute.max_replicas == 2
+    assert config.model.model_id == "Qwen/Qwen2.5-1.5B-Instruct-AWQ"
+    assert config.max_num_seqs == 2
+    assert config.max_model_len == 8192
+    assert config.pvc_size() == "10Gi"
+    assert config.k8s_memory_request_value() == "4Gi"
+    assert config.k8s_memory_limit_value() == "7Gi"
+    assert config.k8s_cpu_limit_value() == "4"
+    assert config.k8s_shm_size_value() == "2Gi"
+    assert config.profile.disk_exception is None
+    assert config.compute.scaler == "keda-http-addon"
+    assert config.compute.requires_durable_interceptor is True
+    assert config.compute.horizontal_scaling is True
+
+
+@pytest.mark.unit
+def test_profile_k8s_replicas_must_be_at_least_one() -> None:
+    with pytest.raises(ValidationError, match="replicas"):
+        ProfileK8sConfig(kind="StatefulSet", replicas=0)
 
 
 @pytest.mark.unit
@@ -87,7 +147,16 @@ def test_pins_are_exact_and_not_latest() -> None:
     assert pins["models"]["portable_baseline"]["revision"]
     assert pins["models"]["current_validation_override"]["revision"]
     assert pins["charts_and_operators"]["keda"] == "2.20.2"
+    assert pins["charts_and_operators"]["keda_http_add_on"] == "0.15.0"
+    images = pins["charts_and_operators"]["keda_http_add_on_images"]
+    assert images["operator_digest"].startswith("sha256:")
+    assert images["scaler_digest"].startswith("sha256:")
+    assert images["interceptor_digest"].startswith("sha256:")
+    assert "latest" not in images["operator"]
+    assert pins["charts_and_operators"]["kube_prometheus_stack_chart"] == "88.6.0"
     assert pins["charts_and_operators"]["nvidia_device_plugin"] == "0.20.0"
+    assert pins["charts_and_operators"]["nvidia_container_toolkit"] == "1.18.0-1"
+    assert pins["charts_and_operators"]["helm"] == "v3.16.4"
     assert pins["host_baseline"]["min_disk_gib"] == 80
     assert pins["host_baseline"]["preferred_disk_gib"] == 100
     assert pins["k3s"]["version"] == "v1.34.10+k3s1"

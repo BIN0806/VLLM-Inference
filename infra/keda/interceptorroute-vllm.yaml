@@ -1,0 +1,29 @@
+# Phase 4C InterceptorRoute (http.keda.sh/v1beta1).
+# Client -> ClusterIP keda-add-ons-http-interceptor-proxy -> svc/vllm -> StatefulSet.
+# Access the interceptor only through SSH plus kubectl port-forward.
+# Do not create kind: HTTPScaledObject. Do not configure a cold-start
+# placeholder; the original held request must wait for Ready and return 200.
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: vllm
+  namespace: inference
+  labels:
+    app: inference-platform
+    component: vllm
+spec:
+  target:
+    service: vllm
+    port: 8000
+  rules:
+    - hosts:
+        - "*"
+      paths:
+        - value: /
+  scalingMetric:
+    concurrency:
+      targetValue: 1
+  timeouts:
+    readiness: 240s
+    request: 420s
+    responseHeader: 300s

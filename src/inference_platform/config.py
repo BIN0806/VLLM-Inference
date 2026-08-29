@@ -138,6 +138,28 @@ class WorkloadConfig(BaseModel):
     notes: str | None = None
 
 
+class ProfileK8sConfig(BaseModel):
+    """Optional Kubernetes workload overlay. Deployment remains the Phase 3 default."""
+
+    kind: Literal["Deployment", "StatefulSet"] = "Deployment"
+    replicas: int = 1
+    pvc_size: str | None = None
+    cpu_request: str | None = None
+    cpu_limit: str | None = None
+    memory_request: str | None = None
+    memory_limit: str | None = None
+    shm_size: str | None = None
+    metrics_service: bool = False
+    service_monitor: bool = False
+
+    @field_validator("replicas")
+    @classmethod
+    def _replicas(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("replicas must be >= 1")
+        return value
+
+
 class DiskExceptionConfig(BaseModel):
     """Narrow, profile-specific disk exception. Does not change host_baseline floors."""
 
@@ -165,6 +187,7 @@ class ProfileConfig(BaseModel):
     hardware_source: str | None = None
     notes: str | None = None
     disk_exception: DiskExceptionConfig | None = None
+    k8s: ProfileK8sConfig | None = None
 
 
 class EnvSettings(BaseSettings):
@@ -224,7 +247,10 @@ class EnvSettings(BaseSettings):
     k8s_storage_class: str = "local-path"
     k8s_model_cache_path: str | None = None
     k8s_cpu_request: str = "2"
+    k8s_cpu_limit: str | None = None
     k8s_memory_request: str = "8Gi"
+    k8s_memory_limit: str | None = None
+    k8s_shm_size: str | None = None
 
     @field_validator(
         "gpu_ssh_port",
@@ -251,6 +277,9 @@ class EnvSettings(BaseSettings):
         "model_config_name",
         "k8s_pvc_size",
         "k8s_model_cache_path",
+        "k8s_cpu_limit",
+        "k8s_memory_limit",
+        "k8s_shm_size",
         mode="before",
     )
     @classmethod
@@ -340,9 +369,59 @@ class ResolvedConfig(BaseModel):
     def pvc_size(self) -> str:
         if self.env.k8s_pvc_size:
             return self.env.k8s_pvc_size
+        if self.profile.k8s and self.profile.k8s.pvc_size:
+            return self.profile.k8s.pvc_size
         storage = self.model.used_storage_gib or self.model.weight_gib
         gib = max(40, int(storage) + 20)
         return f"{gib}Gi"
+
+    def k8s_kind(self) -> str:
+        if self.profile.k8s is not None:
+            return self.profile.k8s.kind
+        return "Deployment"
+
+    def k8s_replicas(self) -> int:
+        if self.profile.k8s is not None:
+            return self.profile.k8s.replicas
+        if self.compute is not None:
+            return self.compute.replica_count
+        return 1
+
+    def k8s_cpu_request_value(self) -> str:
+        overlay = self.profile.k8s
+        if overlay and overlay.cpu_request and self.env.k8s_cpu_request == "2":
+            return overlay.cpu_request
+        return self.env.k8s_cpu_request
+
+    def k8s_cpu_limit_value(self) -> str | None:
+        if self.env.k8s_cpu_limit:
+            return self.env.k8s_cpu_limit
+        if self.profile.k8s:
+            return self.profile.k8s.cpu_limit
+        return None
+
+    def k8s_memory_request_value(self) -> str:
+        overlay = self.profile.k8s
+        if overlay and overlay.memory_request and self.env.k8s_memory_request == "8Gi":
+            return overlay.memory_request
+        return self.env.k8s_memory_request
+
+    def k8s_memory_limit_value(self) -> str | None:
+        if self.env.k8s_memory_limit:
+            return self.env.k8s_memory_limit
+        if self.profile.k8s:
+            return self.profile.k8s.memory_limit
+        return None
+
+    def k8s_shm_size_value(self) -> str:
+        if self.env.k8s_shm_size:
+            return self.env.k8s_shm_size
+        if self.profile.k8s and self.profile.k8s.shm_size:
+            return self.profile.k8s.shm_size
+        raw = (self.serving.shm_size or "8g").strip()
+        if raw.lower().endswith("g") and not raw.lower().endswith("gi"):
+            return raw[:-1] + "Gi"
+        return raw
 
     def ssh_target(self) -> SSHTarget:
         if not self.env.gpu_ssh_host or self.env.gpu_ssh_port is None:

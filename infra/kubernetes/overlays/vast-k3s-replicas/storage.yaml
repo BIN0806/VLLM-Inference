@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-storage
+  namespace: inference
+  labels:
+    app: inference-platform
+    component: vllm
+data:
+  storageClassName: local-path
+  accessMode: ReadWriteOnce
+  modelCachePath: /root/.cache/huggingface
+  pvcSize: 10Gi
+  perReplica: 'true'
+  notes: StatefulSet volumeClaimTemplates create one local-path RWO PVC per replica.
+    Each replica has its own Hugging Face cache. Those volumes persist across pod
+    restarts on this VM. They do not survive destruction of the Vast VM and are not
+    provider-persistent storage. Do not share a writable cache.

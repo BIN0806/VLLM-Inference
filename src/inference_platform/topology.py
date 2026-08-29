@@ -124,7 +124,7 @@ def validate_topology(
             "single-gpu-tp",
             f"single-gpu compute profile requires tensor_parallel_size=1, requested {tp}",
         )
-    if compute is not None and compute.id in {"k8s-replica", "k8s-replica-zero"}:
+    if compute is not None and compute.id in {"k8s-replica", "k8s-replicas", "k8s-replica-zero"}:
         if tp != 1 or pp != 1:
             report.add(
                 "FAIL",
