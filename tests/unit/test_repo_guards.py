@@ -154,6 +154,10 @@ def test_k3s_replicas_keda_status_records_value_metric_and_boundary() -> None:
     for topic in ("9B", "scale-to-zero"):
         assert topic in text
     assert "not tested" in text.lower()
+    assert "Connection: close" in text
+    assert "not a valid latency comparison" in text
+    assert "port-forward" in text.lower()
+    assert "headless" in text.lower()
 
 
 @pytest.mark.unit

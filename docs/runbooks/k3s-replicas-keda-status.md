@@ -4,13 +4,14 @@ Sanitized closeout for the horizontal scaling gate. No IP addresses, SSH
 ports, host keys, tokens, credentials, instance IDs, kubeconfigs, or raw
 cluster dumps are recorded here.
 
-**Gate decision: GO for Phase 4B (manual second replica, then KEDA 1→2→1).**
+**Gate decision: GO for Phase 4B (KEDA 1→2→1 and ClusterIP load-distribution).**
 **STOP before scale-to-zero, the HTTP interceptor, 9B, merge, and VM destroy.**
 
-Access stayed SSH plus `kubectl port-forward` to loopback. Inference and
-Prometheus Services stayed ClusterIP. kube-apiserver remained firewalled to
-loopback and cluster-internal ranges and was not published on the public
-interface. The KEDA HTTP add-on was **not** installed.
+Access stayed SSH plus `kubectl port-forward` to loopback for the first KEDA
+burst. A later addendum used an **in-cluster** client against the ClusterIP
+Service. Inference and Prometheus Services stayed ClusterIP. kube-apiserver
+remained firewalled to loopback and cluster-internal ranges and was not
+published on the public interface. The KEDA HTTP add-on was **not** installed.
 
 ## Hardware and software (same VM as Phase 4A)
 
@@ -78,11 +79,14 @@ ScaledObject Ready=True, Active=False. Replica count stayed 1.
 `pollingInterval: 15` is recorded on the ScaledObject but KEDA logs that it
 is unused while `minReplicaCount=1`. The generated HPA drives 1→N.
 
-## Automatic 1→2
+## Automatic 1→2 (sticky port-forward test)
 
-Began at exactly one Ready replica. Started eight concurrent streaming
-clients through the SSH tunnel (`max_tokens=512`). Prometheus recorded a
-sustained **waiting=6, running=2** queue (`max_num_seqs=2` on one replica).
+This first automatic scale-out used eight concurrent streaming clients through
+the SSH tunnel and `kubectl port-forward` to the ClusterIP Service. That
+forwarder pins a single backend. It proved KEDA 1→2 and client latency on one
+path. It did **not** prove ClusterIP load-distribution. Began at exactly one
+Ready replica. Prometheus recorded a sustained **waiting=6, running=2** queue
+(`max_num_seqs=2` on one replica).
 
 | Instant (UTC) | Event |
 |---|---|
@@ -110,7 +114,86 @@ errors, 0 timeouts**. Client-side TTFT p50/p95 **6.85 / 7.32 s**; E2E p50/p95
 **9.15 / 9.71 s**. Those are same-request measurements, not histogram-quantile
 rankings. The tunnel stayed pinned to `vllm-0`, so Prometheus
 `generation_tokens_total` on `vllm-1` did not move during that burst. After
-Ready, an in-cluster headless request to `vllm-1` returned HTTP 200.
+Ready, an in-cluster headless request to `vllm-1` returned HTTP 200. Headless
+DNS is a liveness probe, not a ClusterIP distribution test.
+
+## ClusterIP load-distribution addendum
+
+A second 1→2→1 used only an in-cluster Job. The Job targeted
+`http://vllm.inference.svc.cluster.local:8000` (the ClusterIP Service named
+`vllm`). It did **not** use the headless Service and did **not** use
+`kubectl port-forward`. Ten worker threads opened a **new TCP connection per
+request** with `Connection: close`. The generator used the already-local vLLM
+image with **no GPU** request. The Job and its ConfigMap were deleted
+afterward; KEDA, Prometheus, and the StatefulSet were left in place.
+
+Baseline before this Job (`vllm-0` only): `request_success_total` 389,
+prompt tokens 17075, generation tokens 106510. HPA 0/1. GPU 1 idle. Ordinal-1
+PVC still Bound.
+
+| Instant (UTC) | Event |
+|---|---|
+| 02:25:42 | Job applied; one Ready replica |
+| 02:25:52 / 02:25:53 | `vllm-1` created / container started (warm PVC) |
+| 02:26:00 | Prom waiting=8 running=2; HPA metric=8 desired=2; STS spec=2 |
+| 02:28:12 | `vllm-1` Ready (warm start **139 s** after container start) |
+| 02:28:24 | First `vllm-1` successes (3); both scrape targets up |
+| 02:30:25 | Load stopped after **133 s** post-Ready (Job delete) |
+| 02:31:14 | Queue drained; waiting=0 running=0 |
+| 02:36:01 | Automatic 2→1 (~287 s after metric 0) |
+
+### Per-pod counters (Prometheus)
+
+Windows use 15 s scrapes. Pre-Ready is 02:26:00→02:28:12 (**132 s**).
+Post-Ready-while-loaded is 02:28:12→02:30:25 (**133 s**).
+
+| Series | Pre-Ready Δ (`vllm-0` only) | Post-Ready Δ `vllm-0` | Post-Ready Δ `vllm-1` |
+|---|---|---|---|
+| `request_success_total` | +136 | **+148** | **+122** |
+| `prompt_tokens_total` | +6800 | +7400 | +6200 |
+| `generation_tokens_total` | +51558 | +56684 | +46793 |
+
+Post-Ready successes split **55% / 45%** (`vllm-0` / `vllm-1`). Both replicas
+processed a meaningful share of ClusterIP traffic. Running sat at 2+2 and
+waiting split across pods (often 4–7 on ordinal 0 and 0–4 on ordinal 1).
+
+Drain after Job delete (02:30:25→02:31:14) added more completions (`vllm-0`
+737, `vllm-1` 162). That tail is in-flight work, not extra offered load.
+
+### Aggregate capacity
+
+| Window | Successful req/s | Generation tok/s |
+|---|---|---|
+| One replica, queued (pre-Ready) | **1.03** | **391** |
+| Two Ready replicas, still queued (post-Ready) | **2.03** | **778** |
+
+Throughput **about doubled** (1.97× requests, 1.99× generation tokens) once
+ordinal 1 was Ready. ClusterIP capacity improved. The sticky port-forward test
+could not show that.
+
+### Client vs Prometheus latency
+
+The Job printed per-request JSONL to stdout. Deleting the Job dropped those
+container logs before a summary could be copied. Do not invent client
+error/timeout counts.
+
+Server-side, `increase(...[10m])` over this addendum: histogram `_count`
+about **524** TTFT / **520** E2E, `_sum` 2257 s / 3176 s. Mean TTFT **4.30 s**,
+mean E2E **6.10 s**. 10m `histogram_quantile` p95 TTFT **7.26 s**, E2E
+**9.62 s**. Those two p95s sit on a dense sample and are ordered TTFT < E2E.
+They remain **observability validation**, not an SLO. A short-window TTFT p95
+that exceeds E2E p95 is not a valid latency comparison (Phase 4A).
+
+### Host envelope while both replicas were Ready (idle after drain)
+
+GPU 0 **14171 MiB**, GPU 1 **14168 MiB**. MemAvailable **15.14 GiB** of 24.51.
+cgroup RSS `vllm-0` **3.59 GiB**, `vllm-1` **3.96 GiB**. Disk 41.63 used /
+84.16 free.
+
+After automatic scale-down: `vllm-0` Ready, 0 restarts; `vllm-1` absent;
+`model-cache-vllm-1` Bound on the same volume; GPU 1 **0 MiB**; MemAvailable
+**18.54 GiB**. Load-generator Job, Pod, and ConfigMap **removed**. ScaledObject
+and HPA left in place.
 
 ## Automatic 2→1
 

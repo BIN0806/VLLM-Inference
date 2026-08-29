@@ -51,14 +51,19 @@ runs to max.
   idle **0/1**, then **6/1** under sustained load (waiting=6).
 - Automatic 1→2: detection **11 s**, warm Ready **141 s** after container
   start vs **172 s** cold. Marker `phase4b-ordinal1-cache` survived.
-- Client traffic through scale-out: 193/193 HTTP 200, 0 timeouts. Automatic
-  2→1 at **01:52:39** UTC, ~287 s after the metric returned to 0.
+- Client traffic through the sticky port-forward test: 193/193 HTTP 200.
+  Automatic 2→1 ~287 s after the metric returned to 0.
+- ClusterIP addendum: in-cluster Job, `Connection: close`, 10 workers.
+  Post-Ready successes **+148 / +122** on `vllm-0` / `vllm-1`. Aggregate
+  successful req/s **1.03 → 2.03** once ordinal 1 was Ready. Auto 2→1 again
+  after the 300 s window. Loadgen Job/ConfigMap removed.
 
 ## Consequences
 
 - 1→N capacity scaling is proven for this 1.5B AWQ StatefulSet on two GPUs.
 - Scale-to-zero still needs a durable front door; vLLM series vanish at zero
   replicas.
-- `kubectl port-forward` to a Service does not load-balance. Use in-cluster
-  DNS when proving both replicas serve.
+- `kubectl port-forward` to a Service does not load-balance. An in-cluster
+  ClusterIP client with `Connection: close` did: both ordinals took ~45–55% of
+  post-Ready successes and aggregate throughput about doubled.
 - Ordinal PVCs remain after scale-in on this VM and die with the VM.

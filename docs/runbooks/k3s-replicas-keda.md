@@ -60,6 +60,11 @@ Generate a **sustained** waiting queue (`max_num_seqs=2` saturates running
 at 2; short bursts miss the 15 s scrape). Keep requests running through
 scale-out. After load ends, wait the stabilization window for 2→1.
 
+`kubectl port-forward` to the ClusterIP Service pins one endpoint. To prove
+both replicas serve, use an in-cluster client against `svc/vllm` with a new
+TCP connection per request (`Connection: close`). Do not treat headless DNS
+or port-forward as a distribution test.
+
 ## Out of scope (STOP)
 
 - Scale-to-zero / HTTP interceptor
