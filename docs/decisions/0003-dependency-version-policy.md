@@ -22,7 +22,10 @@ Pin exact versions or immutable digests. Never commit `latest`. Record the offic
 | KubeRay | 1.7.0 | GitHub | Later |
 | kube-prometheus-stack | chart 88.6.0 | prometheus-community | Phase 4A scrape (Grafana/Alertmanager off) |
 | KEDA | 2.20.2 | kedacore/charts | Phase 4B StatefulSet 1→2→1 |
-| KEDA HTTP Add-on | 0.15.0 | kedacore/http-add-on | Later scale-to-zero |
+| KEDA HTTP Add-on | 0.15.0 | kedacore/http-add-on | Phase 4C lab scale-to-zero |
+| HTTP add-on operator | sha256:d579b952ff0a0c3046a49d0e066bc06d33d1944b5f89b5fac5145d89f9f78959 | ghcr.io tag 0.15.0 | Resolved on the lab cluster |
+| HTTP add-on scaler | sha256:f748178bc4af9e546d5da38c4e1b1d8d236a343bb30927b292131c6f4c978394 | ghcr.io tag 0.15.0 | Resolved on the lab cluster |
+| HTTP add-on interceptor | sha256:4e88e7808652e7c438f66d67bc8a53ce6261b6081c81475bd4758602460af499 | ghcr.io tag 0.15.0 | Resolved on the lab cluster |
 | NVIDIA device plugin | 0.20.0 | NVIDIA/k8s-device-plugin | Phase 3/4 cluster GPU advertise |
 | NVIDIA Container Toolkit | 1.18.0-1 | NVIDIA libnvidia-container apt | Phase 4A k3s NVIDIA runtime |
 | Helm | v3.16.4 | get-helm-3 | Phase 4A chart install |

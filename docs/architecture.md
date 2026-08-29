@@ -6,7 +6,7 @@ This platform serves pretrained models with vLLM. It does not train or fine-tune
 
 ```text
 Clients
-  -> optional gateway / KEDA HTTP interceptor (later)
+  -> KEDA HTTP interceptor ClusterIP (lab; SSH + port-forward only)
     -> stable router
       -> complete inference replica A (vLLM, 1..N GPUs)
       -> complete inference replica B
@@ -26,15 +26,19 @@ Clients
 | macOS authoring workstation | Docs, lint, unit tests, HTTP client | Not applicable |
 | Provider overlay + compute profile (currently `vast` + `single-gpu`) | Real CUDA/vLLM validation over SSH | Required, remote |
 | `k8s-replica` | First Kubernetes MVP, minReplicas=1 | Phase 3 1.5B AWQ on k3s accepted |
-| `k8s-replicas` | Two-replica-capable StatefulSet, one GPU per pod | Phase 4B: KEDA 1→2→1 accepted; scale-to-zero not installed |
-| `k8s-replica-zero` | Later scale-to-zero | Requires durable interceptor |
+| `k8s-replicas` | Two-replica-capable StatefulSet, one GPU per pod | Phase 4C: HTTP interceptor lab scale-to-zero; Phase 4B 1→2→1 retained as historical scaler |
+| `k8s-replica-zero` | Documented zero-replica profile | Validated via the existing StatefulSet + HTTP ScaledObject; renderer still refuses replica_count 0 |
 | `ray-multinode` | True multi-node | `NOT RUN — HARDWARE UNAVAILABLE` |
 
 The authoring Mac is not `local-1gpu`. The GPU is remote.
 
 ## Scale-to-zero
 
-vLLM-only Prometheus series vanish when no vLLM pod exists, so they cannot wake a zero-replica service. A persistent interceptor or gateway must remain available. That profile is later; the first Kubernetes MVP keeps one warm replica.
+vLLM-only Prometheus series vanish when no vLLM pod exists, so they cannot wake
+a zero-replica service. Phase 4C keeps a durable KEDA HTTP Add-on 0.15.0
+interceptor (one replica, ClusterIP) in front of `svc/vllm`. Clients reach it
+only through SSH plus `kubectl port-forward`. That is a single-node lab
+validation; the add-on is beta and production TLS/HA are not proven.
 
 ## Configuration
 

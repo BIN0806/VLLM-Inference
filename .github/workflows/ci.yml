@@ -36,5 +36,12 @@ jobs:
       - name: Ruff lint
         run: uv run ruff check src tests scripts benchmarks
 
+      - name: Install Helm 3.16.4
+        run: |
+          curl -fsSL https://get.helm.sh/helm-v3.16.4-linux-amd64.tar.gz -o /tmp/helm.tgz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
       - name: Offline unit tests
         run: uv run pytest tests/unit -m unit --tb=short

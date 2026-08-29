@@ -1,0 +1,24 @@
+# Optional bounded-label scrape of the HTTP Add-on scaler /metrics on 2223.
+# Prometheus already accepts ServiceMonitors in any namespace. Do not add
+# Grafana or a second Prometheus stack.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: keda-http-addon-scaler
+  namespace: keda
+  labels:
+    app: inference-platform
+    component: keda-http-addon
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: http-add-on
+      app.kubernetes.io/component: scaler
+  namespaceSelector:
+    matchNames:
+      - keda
+  endpoints:
+    - port: metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: false

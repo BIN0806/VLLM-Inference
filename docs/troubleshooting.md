@@ -47,4 +47,7 @@ Service to work around it.
 
 ## Streams dropped during shutdown / cold-start from zero
 
-Later phases. First Kubernetes MVP uses one warm replica. Scale-to-zero needs a durable HTTP interceptor.
+Phase 4C holds one request at the HTTP interceptor while the StatefulSet
+scales 0→1. Client timeout must exceed the 420 s request budget. A 502/504
+or a retried client is a failed cold-start, not a success. See
+`docs/runbooks/k3s-replicas-http.md`.

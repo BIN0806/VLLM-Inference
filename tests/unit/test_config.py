@@ -91,7 +91,8 @@ def test_vast_k3s_replicas_is_stateful_1_5b(monkeypatch: pytest.MonkeyPatch) -> 
     assert config.k8s_cpu_limit_value() == "4"
     assert config.k8s_shm_size_value() == "2Gi"
     assert config.profile.disk_exception is None
-    assert config.compute.scaler == "keda-prometheus"
+    assert config.compute.scaler == "keda-http-addon"
+    assert config.compute.requires_durable_interceptor is True
     assert config.compute.horizontal_scaling is True
 
 
@@ -146,6 +147,12 @@ def test_pins_are_exact_and_not_latest() -> None:
     assert pins["models"]["portable_baseline"]["revision"]
     assert pins["models"]["current_validation_override"]["revision"]
     assert pins["charts_and_operators"]["keda"] == "2.20.2"
+    assert pins["charts_and_operators"]["keda_http_add_on"] == "0.15.0"
+    images = pins["charts_and_operators"]["keda_http_add_on_images"]
+    assert images["operator_digest"].startswith("sha256:")
+    assert images["scaler_digest"].startswith("sha256:")
+    assert images["interceptor_digest"].startswith("sha256:")
+    assert "latest" not in images["operator"]
     assert pins["charts_and_operators"]["kube_prometheus_stack_chart"] == "88.6.0"
     assert pins["charts_and_operators"]["nvidia_device_plugin"] == "0.20.0"
     assert pins["charts_and_operators"]["nvidia_container_toolkit"] == "1.18.0-1"

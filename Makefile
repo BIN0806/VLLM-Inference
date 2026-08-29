@@ -1,6 +1,7 @@
 .PHONY: help setup lint test-unit preflight preflight-remote preflight-k8s ssh-scan-host tunnel \
 	phase1-build phase1-up test-phase1 benchmark-phase1 phase1-down diagnostics \
-	k8s-render k8s-render-replicas phase3-acceptance phase4-acceptance sync-remote compose-env-check health
+	k8s-render k8s-render-replicas phase3-acceptance phase4-acceptance phase4c-acceptance \
+	keda-http-render sync-remote compose-env-check health
 
 PROFILE ?= authoring
 PHASE1_PROFILE ?= vast-single-gpu
@@ -39,6 +40,12 @@ phase3-acceptance: ## Offline Phase 3 tests; set RUN_PHASE3=1 for live tunneled 
 
 phase4-acceptance: ## Offline Phase 4A tests; set RUN_PHASE4=1 for live tunneled SSE/PromQL
 	./scripts/phase4_acceptance.sh
+
+phase4c-acceptance: ## Offline Phase 4C tests and HTTP add-on helm template
+	./scripts/phase4c_acceptance.sh
+
+keda-http-render: ## Render pinned HTTP add-on 0.15.0 (requires helm; does not install)
+	./scripts/keda_http_render.sh
 
 ssh-scan-host: ## Capture a candidate host key, print SHA256, install only after verification
 	./scripts/ssh_scan_host.sh

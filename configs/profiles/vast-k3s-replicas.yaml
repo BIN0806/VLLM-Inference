@@ -24,5 +24,6 @@ notes: |
   Do not silently switch to Qwen3.5-9B. Access is SSH-tunneled loopback.
   Per-replica 10Gi local-path RWO caches via StatefulSet volumeClaimTemplates.
   Do not share a writable Hugging Face cache. Prometheus scrape is in this
-  gate; KEDA and scale-to-zero are not. k3s local-path PVCs persist across
-  pod restarts and are lost when the Vast VM is destroyed.
+  gate. Phase 4C adds the HTTP interceptor in front of this StatefulSet.
+  k3s local-path PVCs persist across pod restarts and scale-to-zero and are
+  lost when the Vast VM is destroyed. Access stays SSH plus port-forward.

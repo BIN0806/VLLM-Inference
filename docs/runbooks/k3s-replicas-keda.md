@@ -18,7 +18,7 @@ Live sanitized closeout:
 | KEDA | `2.20.2` | `configs/pins.yaml` / kedacore/charts |
 | KEDA HTTP Add-on | not installed | later scale-to-zero profile |
 | Prometheus | kube-prometheus-stack `88.6.0` | Phase 4A |
-| ScaledObject | `infra/keda/scaledobject-vllm.yaml` | this repo |
+| ScaledObject (historical) | `infra/keda/scaledobject-vllm-prometheus.yaml` | Phase 4B; do not apply with the HTTP SO |
 
 ## Manual second replica (required before Helm)
 
@@ -43,7 +43,7 @@ helm upgrade --install keda kedacore/keda \
   --namespace keda \
   --create-namespace \
   --wait --timeout 10m
-kubectl apply -f infra/keda/scaledobject-vllm.yaml
+kubectl apply -f infra/keda/scaledobject-vllm-prometheus.yaml
 ```
 
 Do **not** install `keda-add-ons-http`. Confirm the ScaledObject targets

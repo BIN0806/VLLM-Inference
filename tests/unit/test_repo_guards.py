@@ -93,6 +93,13 @@ def test_model_layer_yaml_is_tracked() -> None:
         "infra/observability/kube-prometheus-stack-values.yaml",
         "infra/observability/promql/vllm-acceptance.yaml",
         "infra/keda/scaledobject-vllm.yaml",
+        "infra/keda/scaledobject-vllm-prometheus.yaml",
+        "infra/keda/interceptorroute-vllm.yaml",
+        "infra/keda/http-add-on-values.yaml",
+        "infra/keda/servicemonitor-http-addon.yaml",
+        "docs/runbooks/k3s-replicas-http.md",
+        "docs/runbooks/k3s-replicas-http-status.md",
+        "docs/decisions/0009-phase4c-http-interceptor-scale-to-zero.md",
         "docs/runbooks/vast-k3s-rental.md",
         "docs/runbooks/k3s-nvidia.md",
         "docs/runbooks/k3s-replicas-prometheus.md",
@@ -158,6 +165,32 @@ def test_k3s_replicas_keda_status_records_value_metric_and_boundary() -> None:
     assert "not a valid latency comparison" in text
     assert "port-forward" in text.lower()
     assert "headless" in text.lower()
+    assert "270" in text
+    assert "55%" in text and "45%" in text
+    assert "no measured client error rate" in text.lower()
+    assert "1.03" in text and "2.03" in text
+    assert "391" in text and "778" in text
+
+
+@pytest.mark.unit
+def test_k3s_replicas_http_status_records_lab_scale_to_zero() -> None:
+    text = (repo_root() / "docs/runbooks/k3s-replicas-http-status.md").read_text(encoding="utf-8")
+    assert "InterceptorRoute" in text
+    assert "http.keda.sh/v1beta1" in text
+    assert "external-push" in text
+    assert "minReplicaCount: 0" in text
+    assert "X-KEDA-HTTP-Cold-Start" in text
+    assert "152.426" in text
+    assert "phase4c-ordinal0-cache" in text
+    assert "0.15.0" in text
+    assert "exactly one" in text.lower()
+    assert "HTTPScaledObject" in text
+    assert "single-node lab" in text.lower()
+    assert "not" in text.lower() and "production" in text.lower()
+    assert "port-forward" in text.lower()
+    for topic in ("9B", "Ingress", "NodePort", "LoadBalancer"):
+        assert topic in text
+    assert "not tested" in text.lower() or "not claimed" in text.lower()
 
 
 @pytest.mark.unit

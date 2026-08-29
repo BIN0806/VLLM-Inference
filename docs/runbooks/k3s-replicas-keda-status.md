@@ -145,13 +145,20 @@ PVC still Bound.
 ### Per-pod counters (Prometheus)
 
 Windows use 15 s scrapes. Pre-Ready is 02:26:00→02:28:12 (**132 s**).
-Post-Ready-while-loaded is 02:28:12→02:30:25 (**133 s**).
+Post-Ready-while-loaded is 02:28:12→02:30:25 (**133 s**). That window
+contains **270** successful completions: **+148** on `vllm-0` and **+122**
+on `vllm-1` (**55% / 45%**).
 
 | Series | Pre-Ready Δ (`vllm-0` only) | Post-Ready Δ `vllm-0` | Post-Ready Δ `vllm-1` |
 |---|---|---|---|
 | `request_success_total` | +136 | **+148** | **+122** |
 | `prompt_tokens_total` | +6800 | +7400 | +6200 |
 | `generation_tokens_total` | +51558 | +56684 | +46793 |
+
+Those **270** post-Ready successes are the ClusterIP distribution proof.
+Do **not** claim a measured client error or timeout rate for this addendum:
+the Job’s stdout JSONL was deleted with the Job. Capacity numbers below use
+server-side Prometheus counters only.
 
 Post-Ready successes split **55% / 45%** (`vllm-0` / `vllm-1`). Both replicas
 processed a meaningful share of ClusterIP traffic. Running sat at 2+2 and
@@ -174,8 +181,9 @@ could not show that.
 ### Client vs Prometheus latency
 
 The Job printed per-request JSONL to stdout. Deleting the Job dropped those
-container logs before a summary could be copied. Do not invent client
-error/timeout counts.
+container logs before a summary could be copied. This addendum has
+**no measured client error rate**. Do not invent client error or timeout
+counts.
 
 Server-side, `increase(...[10m])` over this addendum: histogram `_count`
 about **524** TTFT / **520** E2E, `_sum` 2257 s / 3176 s. Mean TTFT **4.30 s**,

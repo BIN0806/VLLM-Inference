@@ -88,4 +88,5 @@ raw `/metrics` response.
   assuming Deployment-like behavior.
 - Prometheus is capped and trimmed for the constrained host. Grafana,
   Alertmanager, and broad default rules are not part of Phase 4A.
-- Phase 4B proved KEDA 1→2→1 on this StatefulSet. Scale-to-zero is not claimed.
+- Phase 4B proved KEDA 1→2→1 on this StatefulSet. Phase 4C uses a durable
+  HTTP interceptor for lab scale-to-zero; production TLS/HA are not claimed.

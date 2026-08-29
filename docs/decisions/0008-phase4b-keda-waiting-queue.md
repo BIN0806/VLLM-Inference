@@ -54,9 +54,10 @@ runs to max.
 - Client traffic through the sticky port-forward test: 193/193 HTTP 200.
   Automatic 2→1 ~287 s after the metric returned to 0.
 - ClusterIP addendum: in-cluster Job, `Connection: close`, 10 workers.
-  Post-Ready successes **+148 / +122** on `vllm-0` / `vllm-1`. Aggregate
-  successful req/s **1.03 → 2.03** once ordinal 1 was Ready. Auto 2→1 again
-  after the 300 s window. Loadgen Job/ConfigMap removed.
+  **270** post-Ready successes split **+148 / +122** (55%/45%) on
+  `vllm-0` / `vllm-1`. Aggregate successful req/s **1.03 → 2.03** from
+  Prometheus counters. No measured client error rate (Job logs deleted).
+  Auto 2→1 after the 300 s window. Loadgen Job/ConfigMap removed.
 
 ## Consequences
 

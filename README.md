@@ -28,8 +28,8 @@ machine.
 | Tensor parallelism | One replica sharded across GPUs | Horizontal request scaling |
 | Independent replicas | One replica per GPU for throughput | The same thing as TP |
 | Kubernetes `k8s-replica` | One complete pod per replica, min=1 | Phase 3 1.5B AWQ on k3s accepted |
-| Kubernetes `k8s-replicas` | StatefulSet, one GPU per pod, max=2 | Phase 4B KEDA 1→2→1 accepted |
-| Scale-to-zero | Later profile behind a durable HTTP interceptor | Something vLLM metrics can do alone |
+| Kubernetes `k8s-replicas` | StatefulSet, one GPU per pod, max=2 | Phase 4C HTTP interceptor lab; Phase 4B 1→2→1 historical |
+| Scale-to-zero | Lab path behind KEDA HTTP Add-on 0.15.0 | Something vLLM metrics can do alone; not production serverless |
 
 Tensor parallelism and pipeline parallelism build **one complete model replica**.
 KEDA adds or removes **whole replicas**. Scaling a single TP rank or Ray
@@ -53,8 +53,9 @@ Current portable baseline (temporary rental, not a project-wide default):
 
 Phase 3 accepted one warm 1.5B AWQ replica on single-node k3s. Phase 4A
 accepted Prometheus scrape of one StatefulSet replica. Phase 4B accepted
-KEDA 1→2→1 on waiting-queue depth. 9B, Ray, scale-to-zero, and the HTTP
-add-on are **not claimed**.
+KEDA 1→2→1 on waiting-queue depth. Phase 4C is a single-node lab validation
+of HTTP Add-on 0.15.0 scale-to-zero. 9B, Ray, production TLS/HA, and
+managed Kubernetes are **not claimed**.
 
 ## Setup (authoring)
 
