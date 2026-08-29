@@ -63,6 +63,68 @@ Runs on different GPU models are not topology speedup comparisons. The
 5,000-output-token/s remains a future performance goal that requires a frozen
 workload and suitable hardware.
 
+## Demo and visual story
+
+For a nontechnical audience, describe the project as:
+
+> I built a system that serves an LLM on GPUs, automatically adds another GPU
+> worker when traffic increases, and shuts the model down when idle to reduce
+> wasted resources.
+
+```mermaid
+flowchart LR
+    A[Users send requests] --> B[Model service]
+    B --> C[GPU worker 1]
+    A -->|Traffic increases| D[System adds capacity]
+    D --> E[GPU worker 2]
+    C --> F[Responses]
+    E --> F
+    F -->|Traffic ends| G[Extra capacity shuts down]
+```
+
+### Three-minute walkthrough
+
+1. **Start idle:** no vLLM replica is running, but the request interceptor
+   remains available.
+2. **Send one prompt:** the interceptor holds it while one GPU worker starts;
+   the same request returns a valid streaming response.
+3. **Create a traffic spike:** queued work triggers a second complete GPU
+   worker.
+4. **Show distribution:** new ClusterIP connections split real completions
+   55%/45% across the two workers.
+5. **End the load:** the extra worker scales down; the scale-to-zero path later
+   returns the model service to zero.
+
+### Visuals backed by recorded measurements
+
+**Aggregate capacity**
+
+| Ready GPU workers | Successful requests/s | Relative bar |
+|---:|---:|---|
+| 1 | 1.03 | ██████████ |
+| 2 | 2.03 | ████████████████████ |
+
+**Post-scale traffic distribution**
+
+| Worker | Completed requests | Share |
+|---|---:|---:|
+| Replica 0 / GPU 0 | 148 | 55% |
+| Replica 1 / GPU 1 | 122 | 45% |
+
+**Scale-from-zero timeline**
+
+```text
+request arrives at zero
+  -> activation begins
+    -> model Ready at ~150 s
+      -> original request completes at ~152.4 s
+        -> normal automatic scale-down after the idle window (~327 s)
+```
+
+A prerecorded walkthrough or local animated replay is preferable to a live
+rental for presentations: it uses the real sanitized measurements, avoids
+minutes of unpredictable model startup, and does not require new GPU spending.
+
 ## Documentation
 
 - [Project status](docs/project-status.md) — final capability and evidence
