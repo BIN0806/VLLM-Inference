@@ -1,0 +1,103 @@
+# kube-prometheus-stack 88.6.0 — Phase 4A constrained single-node k3s.
+# Prometheus only. Do not enable Grafana, Alertmanager, KEDA, or default rules.
+# Service type stays ClusterIP. Do not publish NodePort or Ingress.
+
+grafana:
+  enabled: false
+  defaultDashboardsEnabled: false
+  forceDeployDashboards: false
+
+alertmanager:
+  enabled: false
+
+defaultRules:
+  create: false
+
+kubeApiServer:
+  enabled: false
+kubelet:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+coreDns:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeStateMetrics:
+  enabled: false
+nodeExporter:
+  enabled: false
+  operatingSystems:
+    linux:
+      enabled: false
+    aix:
+      enabled: false
+    darwin:
+      enabled: false
+
+prometheus-node-exporter:
+  enabled: false
+
+windowsMonitoring:
+  enabled: false
+
+thanosRuler:
+  enabled: false
+
+kube-state-metrics:
+  prometheus:
+    monitor:
+      enabled: false
+
+prometheusOperator:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+prometheus:
+  enabled: true
+  agentMode: false
+  service:
+    type: ClusterIP
+    port: 9090
+  ingress:
+    enabled: false
+  prometheusSpec:
+    replicas: 1
+    shards: 1
+    retention: 6h
+    retentionSize: 4GiB
+    walCompression: true
+    enableAdminAPI: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    scrapeConfigSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 2Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 8Gi

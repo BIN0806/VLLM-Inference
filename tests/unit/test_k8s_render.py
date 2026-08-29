@@ -30,6 +30,11 @@ def _isolate_k8s_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "VLLM_GPU_MEMORY_UTILIZATION",
         "VLLM_IMAGE",
         "VLLM_MODEL",
+        "K8S_CPU_REQUEST",
+        "K8S_CPU_LIMIT",
+        "K8S_MEMORY_REQUEST",
+        "K8S_MEMORY_LIMIT",
+        "K8S_SHM_SIZE",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -119,6 +124,67 @@ def test_render_refuses_authoring_profile() -> None:
 
 
 @pytest.mark.unit
+def test_render_statefulset_phase4a_resources() -> None:
+    manifests = render_manifests(load_profile("vast-k3s-replicas"))
+    assert "deployment.yaml" not in manifests
+    assert "pvc.yaml" not in manifests
+    sts = manifests["statefulset.yaml"]
+    assert sts["kind"] == "StatefulSet"
+    assert sts["spec"]["replicas"] == 1
+    assert sts["spec"]["updateStrategy"]["type"] == "RollingUpdate"
+    spec = sts["spec"]["template"]["spec"]
+    assert spec["enableServiceLinks"] is False
+    container = spec["containers"][0]
+    assert container["resources"]["requests"]["cpu"] == "2"
+    assert container["resources"]["requests"]["memory"] == "4Gi"
+    assert container["resources"]["limits"]["cpu"] == "4"
+    assert container["resources"]["limits"]["memory"] == "7Gi"
+    assert container["resources"]["limits"]["nvidia.com/gpu"] == "1"
+    assert spec["volumes"][0]["emptyDir"]["sizeLimit"] == "2Gi"
+    claim = sts["spec"]["volumeClaimTemplates"][0]
+    assert claim["spec"]["resources"]["requests"]["storage"] == "10Gi"
+    assert claim["spec"]["accessModes"] == ["ReadWriteOnce"]
+    assert claim["spec"]["storageClassName"] == "local-path"
+    assert "--max-num-seqs" in container["args"]
+    seqs = container["args"][container["args"].index("--max-num-seqs") + 1]
+    assert seqs == "2"
+    assert "ray" not in " ".join(container["args"]).lower()
+    assert manifests["service.yaml"]["spec"]["type"] == "ClusterIP"
+    assert manifests["metrics-service.yaml"]["spec"]["type"] == "ClusterIP"
+    assert manifests["headless-service.yaml"]["spec"]["clusterIP"] == "None"
+    assert manifests["service.yaml"]["spec"].get("type") == "ClusterIP"
+    assert "NodePort" not in str(manifests["service.yaml"])
+    assert spec.get("hostNetwork") is not True
+    assert spec.get("privileged") is not True
+    assert container.get("securityContext", {}).get("privileged") is not True
+    monitor = manifests["servicemonitor.yaml"]
+    assert monitor["kind"] == "ServiceMonitor"
+    assert monitor["spec"]["endpoints"][0]["path"] == "/metrics"
+    notes = manifests["storage.yaml"]["data"]["notes"]
+    assert "volumeClaimTemplates" in notes
+    assert "Do not share a writable cache" in notes
+    assert "secret.yaml.example" not in manifests["kustomization.yaml"]["resources"]
+    assert "servicemonitor.yaml" not in manifests["kustomization.yaml"]["resources"]
+    assert manifests["kustomization-monitoring.yaml"]["resources"] == ["servicemonitor.yaml"]
+    patch = manifests["kustomization.yaml"]["patches"][0]
+    assert patch["target"]["kind"] == "StatefulSet"
+    secret = manifests["secret.yaml.example"]["stringData"]
+    assert secret["HF_TOKEN"] == ""
+    assert secret["VLLM_API_KEY"] == ""
+
+
+@pytest.mark.unit
+def test_write_stateful_manifests(tmp_path: Path) -> None:
+    written = write_manifests(load_profile("vast-k3s-replicas"), tmp_path)
+    names = {path.name for path in written}
+    assert "statefulset.yaml" in names
+    assert "servicemonitor.yaml" in names
+    assert "kustomization-monitoring.yaml" in names
+    assert "nvidia-device-plugin-k3s-patch.yaml" in names
+    assert "deployment.yaml" not in names
+
+
+@pytest.mark.unit
 def test_write_manifests(tmp_path: Path) -> None:
     written = write_manifests(load_profile("vast-k3s-replica"), tmp_path)
     names = {path.name for path in written}
@@ -138,5 +204,26 @@ def test_vast_k3s_overlay_sets_nvidia_runtime_class() -> None:
     assert "runtime-class-patch.yaml" in kustomize["patches"][0]["path"]
     patch = yaml.safe_load((overlay / "runtime-class-patch.yaml").read_text())
     assert patch["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"
+    plugin = yaml.safe_load((overlay / "nvidia-device-plugin-k3s-patch.yaml").read_text())
+    assert plugin["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"
+
+
+@pytest.mark.unit
+def test_vast_k3s_replicas_overlay_is_stateful() -> None:
+    from inference_platform.paths import repo_root
+
+    overlay = repo_root() / "infra" / "kubernetes" / "overlays" / "vast-k3s-replicas"
+    kustomize = yaml.safe_load((overlay / "kustomization.yaml").read_text())
+    assert kustomize["namespace"] == "inference"
+    assert "statefulset.yaml" in kustomize["resources"]
+    assert "servicemonitor.yaml" not in kustomize["resources"]
+    assert "deployment.yaml" not in kustomize["resources"]
+    patch = yaml.safe_load((overlay / "runtime-class-patch.yaml").read_text())
+    assert patch["kind"] == "StatefulSet"
+    assert patch["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"
+    sts = yaml.safe_load((overlay / "statefulset.yaml").read_text())
+    assert sts["spec"]["replicas"] == 1
+    monitor = yaml.safe_load((overlay / "kustomization-monitoring.yaml").read_text())
+    assert monitor["resources"] == ["servicemonitor.yaml"]
     plugin = yaml.safe_load((overlay / "nvidia-device-plugin-k3s-patch.yaml").read_text())
     assert plugin["spec"]["template"]["spec"]["runtimeClassName"] == "nvidia"

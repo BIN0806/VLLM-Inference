@@ -84,7 +84,9 @@ then the k3s kubelet path + RuntimeClass patch:
 k3s kubelet on v1.34 uses `/var/lib/kubelet/device-plugins` (standard path).
 GPU pods and the device plugin DaemonSet set `runtimeClassName: nvidia`.
 
-Confirm `kubectl describe node` shows `nvidia.com/gpu: 1`.
+Confirm `kubectl describe node` shows `nvidia.com/gpu: 1` (Phase 3) or
+`nvidia.com/gpu: 2` (Phase 4A). Do not install Prometheus from this Phase 3
+page; see [k3s-replicas-prometheus.md](k3s-replicas-prometheus.md).
 
 ## 4. Application manifests
 

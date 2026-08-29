@@ -191,3 +191,57 @@ def test_cli_with_facts_file(tmp_path: Path) -> None:
     payload = json.loads(report.read_text(encoding="utf-8"))
     assert payload["gate"]["gpu_gate_claimed"] is False
     assert payload["profile"] == "vast-k3s-replica"
+
+
+def _good_two_gpu(**overrides) -> K8sHostFacts:
+    data = dict(
+        gpu_count=2,
+        gpu_names=["NVIDIA RTX A4000", "NVIDIA RTX A4000"],
+        gpu_vram_mib=[16376, 16376],
+        nvidia_gpu_allocatable=2,
+        ram_gib=24.5,
+        disk_total_gib=125.0,
+        disk_free_gib=110.0,
+    )
+    data.update(overrides)
+    return _good_24g(**data)
+
+
+@pytest.mark.unit
+def test_k8s_replicas_requires_two_allocatable_gpus() -> None:
+    results = evaluate_k8s_host(load_profile("vast-k3s-replicas"), _good_two_gpu())
+    gpu = next(item for item in results if item.name == "nvidia.com/gpu")
+    assert gpu.status == "PASS"
+    assert "2" in gpu.summary
+    assert overall_status(results) in {"PASS", "WARN"}
+    ram = next(item for item in results if item.name == "ram")
+    assert ram.status == "WARN"
+
+
+@pytest.mark.unit
+def test_k8s_replicas_fails_when_only_one_gpu_is_advertised() -> None:
+    facts = _good_two_gpu(nvidia_gpu_allocatable=1)
+    results = evaluate_k8s_host(load_profile("vast-k3s-replicas"), facts)
+    gpu = next(item for item in results if item.name == "nvidia.com/gpu")
+    assert gpu.status == "FAIL"
+    assert overall_status(results) == "FAIL"
+
+
+@pytest.mark.unit
+def test_k8s_replicas_fails_on_one_physical_gpu() -> None:
+    facts = _good_24g(nvidia_gpu_allocatable=1)
+    results = evaluate_k8s_host(load_profile("vast-k3s-replicas"), facts)
+    replica = next(item for item in results if item.name == "gpu-replicas")
+    assert replica.status == "FAIL"
+    assert overall_status(results) == "FAIL"
+
+
+@pytest.mark.unit
+def test_k8s_replicas_does_not_receive_phase3_disk_exception() -> None:
+    facts = _good_two_gpu(disk_total_gib=72.5, disk_free_gib=55.0)
+    results = evaluate_k8s_host(
+        load_profile("vast-k3s-replicas"), facts, require_cluster=False, disk_gate="before_install"
+    )
+    disk = next(item for item in results if item.name == "disk")
+    assert disk.status == "FAIL"
+    assert overall_status(results) == "FAIL"

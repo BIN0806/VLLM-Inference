@@ -1,0 +1,18 @@
+id: k8s-replicas
+description: Two-replica-capable k3s workload. One complete vLLM replica per GPU. KEDA not installed in Phase 4A.
+gpus_per_replica: 1
+tensor_parallel_size: 1
+pipeline_parallel_size: 1
+distributed_executor_backend: mp
+replica_count: 1
+min_replicas: 1
+max_replicas: 2
+scaling_unit: complete-replica
+horizontal_scaling: true
+scaler: none
+requires_durable_interceptor: false
+status: phase4a-scaffold
+notes: |
+  Phase 4A architecture: StatefulSet, min=1, max=2, nvidia.com/gpu: 1 per pod,
+  TP=1, PP=1, mp. Start with one warm replica. Do not install KEDA or
+  scale-to-zero in this gate. Prometheus scrape is separate from scaling.

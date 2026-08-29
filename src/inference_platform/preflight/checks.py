@@ -232,7 +232,7 @@ def check_shared_memory() -> CheckResult:
 
 def check_kubernetes(config: ResolvedConfig) -> CheckResult:
     compute_id = None if config.compute is None else config.compute.id
-    if compute_id not in {"k8s-replica", "k8s-replica-zero"}:
+    if compute_id not in {"k8s-replica", "k8s-replicas", "k8s-replica-zero"}:
         return CheckResult(
             name="kubernetes",
             status="SKIP",

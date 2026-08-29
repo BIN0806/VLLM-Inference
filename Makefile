@@ -1,10 +1,11 @@
 .PHONY: help setup lint test-unit preflight preflight-remote preflight-k8s ssh-scan-host tunnel \
 	phase1-build phase1-up test-phase1 benchmark-phase1 phase1-down diagnostics \
-	k8s-render phase3-acceptance sync-remote compose-env-check health
+	k8s-render k8s-render-replicas phase3-acceptance phase4-acceptance sync-remote compose-env-check health
 
 PROFILE ?= authoring
 PHASE1_PROFILE ?= vast-single-gpu
 K8S_PROFILE ?= vast-k3s-replica
+PHASE4_PROFILE ?= vast-k3s-replicas
 OVERLAY ?= vast-k3s
 PYTHON ?= python3.12
 COMPOSE_ENV_FILE ?= .env.local
@@ -35,6 +36,9 @@ preflight-k8s: ## Evaluate Kubernetes host facts (offline JSON or local Linux). 
 
 phase3-acceptance: ## Offline Phase 3 tests; set RUN_PHASE3=1 for live tunneled SSE
 	./scripts/phase3_acceptance.sh
+
+phase4-acceptance: ## Offline Phase 4A tests; set RUN_PHASE4=1 for live tunneled SSE/PromQL
+	./scripts/phase4_acceptance.sh
 
 ssh-scan-host: ## Capture a candidate host key, print SHA256, install only after verification
 	./scripts/ssh_scan_host.sh
@@ -78,6 +82,10 @@ health: ## Probe VLLM_BASE_URL /health (tunneled or local)
 k8s-render: ## Render Phase 3 Kubernetes YAML from K8S_PROFILE (does not apply)
 	uv run python -m inference_platform.k8s.render --profile $(K8S_PROFILE) --out infra/kubernetes/base
 	@echo "Overlay=$(OVERLAY). Do not kubectl apply until a GPU VM is approved."
+
+k8s-render-replicas: ## Render Phase 4A StatefulSet overlay (does not apply)
+	uv run python -m inference_platform.k8s.render --profile $(PHASE4_PROFILE) --out infra/kubernetes/overlays/vast-k3s-replicas
+	@echo "Do not kubectl apply until a two-GPU VM and k3s cluster exist. Do not install KEDA."
 
 sync-remote: ## Copy the repo to the GPU host without secrets (requires INFERENCE_ALLOW_REMOTE=1)
 	./scripts/sync_to_remote.sh

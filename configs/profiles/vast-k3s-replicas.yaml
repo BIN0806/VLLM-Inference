@@ -1,0 +1,28 @@
+id: vast-k3s-replicas
+provider: vast
+compute: k8s-replicas
+model: qwen2.5-1.5b-instruct-awq
+serving: k8s-replicas
+workload: dev-smoke
+gpu_required: true
+remote_required: true
+hardware_source: env-and-discovery
+k8s:
+  kind: StatefulSet
+  replicas: 1
+  pvc_size: 10Gi
+  cpu_request: "2"
+  cpu_limit: "4"
+  memory_request: 4Gi
+  memory_limit: 7Gi
+  shm_size: 2Gi
+  metrics_service: true
+  service_monitor: true
+notes: |
+  Phase 4A: VM-capable Vast host with two schedulable NVIDIA GPUs, single-node
+  k3s, one warm 1.5B AWQ replica, architecture ready for a second replica.
+  Do not silently switch to Qwen3.5-9B. Access is SSH-tunneled loopback.
+  Per-replica 10Gi local-path RWO caches via StatefulSet volumeClaimTemplates.
+  Do not share a writable Hugging Face cache. Prometheus scrape is in this
+  gate; KEDA and scale-to-zero are not. k3s local-path PVCs persist across
+  pod restarts and are lost when the Vast VM is destroyed.

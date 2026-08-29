@@ -59,7 +59,11 @@ charts_and_operators:
   nvidia_device_plugin: "0.20.0"
   nvidia_device_plugin_source: "https://github.com/NVIDIA/k8s-device-plugin/releases/tag/v0.20.0"
   nvidia_device_plugin_manifest: "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.20.0/deployments/static/nvidia-device-plugin.yml"
-  status: "Pinned for future phases. Not installed or validated in Phase 0."
+  nvidia_container_toolkit: "1.18.0-1"
+  nvidia_container_toolkit_source: "https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html"
+  helm: "v3.16.4"
+  helm_install_script: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+  status: "k3s and NVIDIA device plugin accepted in Phase 3. Prometheus chart used in Phase 4A. KEDA not installed."
 
 k3s:
   version: "v1.34.10+k3s1"

@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vllm
+  namespace: inference
+  labels: &id001
+    app: inference-platform
+    component: vllm
+spec:
+  serviceName: vllm-headless
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels: *id001
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels: *id001
+    spec:
+      terminationGracePeriodSeconds: 60
+      enableServiceLinks: false
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:v0.27.1@sha256:c2f3b1b964e47809b722b5e75b61b1e7b39a50f70388cf2bf2418f16a9f31da2
+        imagePullPolicy: IfNotPresent
+        args:
+        - --model
+        - Qwen/Qwen2.5-1.5B-Instruct-AWQ
+        - --revision
+        - 3ecffa0ceb27851800f45519bab9c457a04405e1
+        - --served-model-name
+        - qwen2.5-1.5b-instruct-awq
+        - --tensor-parallel-size
+        - '1'
+        - --pipeline-parallel-size
+        - '1'
+        - --distributed-executor-backend
+        - mp
+        - --gpu-memory-utilization
+        - '0.9'
+        - --max-model-len
+        - '8192'
+        - --max-num-seqs
+        - '2'
+        - --host
+        - 0.0.0.0
+        - --port
+        - '8000'
+        - --quantization
+        - awq
+        ports:
+        - name: http
+          containerPort: 8000
+        - name: metrics
+          containerPort: 8000
+        env:
+        - name: HF_HOME
+          value: /root/.cache/huggingface
+        - name: HF_HUB_DISABLE_XET
+          valueFrom:
+            configMapKeyRef:
+              name: vllm-serving
+              key: HF_HUB_DISABLE_XET
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vllm-secrets
+              key: HF_TOKEN
+              optional: true
+        - name: VLLM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vllm-secrets
+              key: VLLM_API_KEY
+              optional: true
+        resources:
+          requests:
+            cpu: '2'
+            memory: 4Gi
+            nvidia.com/gpu: '1'
+          limits:
+            nvidia.com/gpu: '1'
+            cpu: '4'
+            memory: 7Gi
+        startupProbe:
+          httpGet: &id002
+            path: /health
+            port: 8000
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 90
+        readinessProbe:
+          httpGet: *id002
+          timeoutSeconds: 5
+          periodSeconds: 5
+          failureThreshold: 6
+        livenessProbe:
+          httpGet: *id002
+          timeoutSeconds: 5
+          periodSeconds: 20
+          failureThreshold: 3
+        volumeMounts:
+        - name: model-cache
+          mountPath: /root/.cache/huggingface
+        - name: shm
+          mountPath: /dev/shm
+      volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 2Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: model-cache
+      labels: *id001
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 10Gi
