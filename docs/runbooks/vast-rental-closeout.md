@@ -45,11 +45,17 @@ survive vendor destroy.
 
 ## Vendor destroy
 
-**Status: not yet executed.** Close tunnels, confirm both GPUs idle and no
-inference listener, then destroy the instance from the Vast CLI/console.
-After a successful delete, update this section with the sanitized result
-only (instance gone; VM-local PVCs and caches gone with the VM). Do not
-record instance IDs, hosts, or API responses that identify the rental.
+**Status: instance deleted.** The operator sent `DELETE` to the Vast
+instances API using the VM-scoped container key. The API returned HTTP
+**200** with `success: true`. A later SSH attempt to the former rental
+**timed out**. No instance IDs, hosts, or API keys are recorded here.
+
+VM-local k3s `local-path` PVCs, Hugging Face caches, and the Compose
+`HF_HOME` bind-mount copy **died with the VM**. They are not
+provider-persistent volumes.
+
+Authoring-host follow-up: SSH tunnels were closed with SIGTERM; no local
+`:8000` listener and no remaining `ssh -L` forwards.
 
 ## Claim boundary after closeout
 

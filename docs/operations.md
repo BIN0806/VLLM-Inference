@@ -19,6 +19,6 @@ Prometheus-driven **1→2**; Phase 4C proved interceptor-driven **0→1**. HTTP
 production TLS/HA.
 
 Compose 1.5B on GPU 0 is accepted
-([compose-1.5b-status.md](runbooks/compose-1.5b-status.md)). Rental destroy
-is an operator action recorded in
+([compose-1.5b-status.md](runbooks/compose-1.5b-status.md)). The Phase 4
+lab rental was destroyed; see
 [vast-rental-closeout.md](runbooks/vast-rental-closeout.md).

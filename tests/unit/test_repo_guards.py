@@ -239,6 +239,10 @@ def test_vast_rental_closeout_records_stop_order() -> None:
     assert "compose-1.5b-status.md" in text
     assert "0→2" in text
     assert "operator" in text.lower()
+    assert "instance deleted" in text.lower()
+    assert "success: true" in text
+    assert "died with the VM" in text
+    assert "not yet executed" not in text.lower()
 
 
 @pytest.mark.unit
