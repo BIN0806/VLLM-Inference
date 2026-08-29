@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted for Phase 0. Phase 3 did not install Prometheus or KEDA. Phase 4A
-installs Prometheus scrape only. KEDA 1→2 and scale-to-zero stay later.
+Accepted for Phase 0. Phase 4A installed Prometheus scrape of one warm
+replica. KEDA 1→2 and scale-to-zero stay later.
 
 ## Decision
 
@@ -17,6 +17,5 @@ Combining KEDA with complete multi-node Ray replicas needs a later controller an
 
 ## Consequences
 
-Phase 0 records the boundary. Phase 3 deployed one k3s replica and did not
-install Prometheus or KEDA. Phase 4A adds Prometheus scrape of one warm
+Phase 0 records the boundary. Phase 4A added Prometheus scrape of one warm
 replica. Do not install KEDA until a later approved gate.

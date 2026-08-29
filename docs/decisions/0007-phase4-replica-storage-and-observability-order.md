@@ -2,8 +2,10 @@
 
 ## Status
 
-Accepted for the Phase 4 design. The Phase 4A live Prometheus gate and the later
-KEDA 1→2 gate remain unvalidated until their tracked status reports say GO.
+Accepted for the Phase 4 design. Phase 4A live Prometheus scrape is recorded in
+[k3s-replicas-prometheus-status.md](../runbooks/k3s-replicas-prometheus-status.md)
+(**GO**, one replica). The later KEDA 1→2 gate remains unvalidated until its
+tracked status report says GO.
 
 ## Context
 
@@ -71,8 +73,10 @@ raw `/metrics` response.
 - KEDA 2.20 supports StatefulSet targets through the Kubernetes scale
   subresource.
 - vLLM 0.27.1 exports running, waiting, KV-cache, token, TTFT, and end-to-end
-  latency series, but Phase 4A must still prove their Prometheus labels and
-  queries.
+  latency series. Phase 4A proved Prometheus scrape labels, token totals, and
+  waiting/running gauges. Histogram p95 queries are observability validation
+  only; a short-window TTFT p95 that exceeded E2E p95 was a sparse-quantile
+  artifact, not a latency ranking. See the Phase 4A status report.
 
 ## Consequences
 

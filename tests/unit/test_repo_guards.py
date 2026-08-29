@@ -95,6 +95,7 @@ def test_model_layer_yaml_is_tracked() -> None:
         "docs/runbooks/vast-k3s-rental.md",
         "docs/runbooks/k3s-nvidia.md",
         "docs/runbooks/k3s-replicas-prometheus.md",
+        "docs/runbooks/k3s-replicas-prometheus-status.md",
         "docs/runbooks/k3s-nvidia.md",
         "docs/decisions/0006-phase3-1.5b-disk-exception.md",
         "docs/runbooks/k3s-replica-1.5b-status.md",
@@ -111,6 +112,25 @@ def test_k3s_replica_status_records_out_of_scope() -> None:
     assert "local-path" in text
     assert "does not survive destruction" in text.lower() or "deletes the PVC" in text
     for topic in ("9B", "Ray", "Prometheus", "KEDA", "scale-to-zero"):
+        assert topic in text
+    assert "not tested" in text.lower()
+
+
+@pytest.mark.unit
+def test_k3s_replicas_prometheus_status_records_latency_caveat() -> None:
+    text = (repo_root() / "docs/runbooks/k3s-replicas-prometheus-status.md").read_text(
+        encoding="utf-8"
+    )
+    assert "enableServiceLinks: false" in text
+    assert "local-path" in text
+    assert "does not survive" in text.lower() or "deletes the PVC" in text
+    assert "not a valid latency comparison" in text
+    assert "_count" in text and "_sum" in text
+    assert "observability validation" in text.lower()
+    assert "firewalled" in text.lower()
+    assert "not" in text.lower() and "public" in text.lower()
+    assert "ClusterIP-only" not in text
+    for topic in ("9B", "Ray", "KEDA", "scale-to-zero"):
         assert topic in text
     assert "not tested" in text.lower()
 

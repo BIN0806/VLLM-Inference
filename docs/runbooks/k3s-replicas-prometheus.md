@@ -7,7 +7,8 @@ URL. Do not install KEDA. Do not scale to two replicas in this gate. Do not
 deploy 9B.
 
 Sanitized host facts belong in gitignored `docs/phase4-preflight.md`. Do not
-commit IPs, SSH ports, instance IDs, kubeconfigs, or host keys.
+commit IPs, SSH ports, instance IDs, kubeconfigs, or host keys. Live closeout:
+[k3s-replicas-prometheus-status.md](k3s-replicas-prometheus-status.md).
 
 ## Pins
 

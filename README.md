@@ -51,8 +51,8 @@ Current portable baseline (temporary rental, not a project-wide default):
 - Phase 2 override: `Qwen/Qwen3.5-9B` @ `c202236235762e1c871ad0ccb60c8ee5ba337b9a` (not used in Phase 3)
 - vLLM: `0.27.1` with official image digest recorded in `configs/pins.yaml`
 
-Phase 3 accepted one warm 1.5B AWQ replica on single-node k3s. Phase 4A adds
-a two-replica-capable StatefulSet and Prometheus scrape. 9B, Ray, KEDA, and
+Phase 3 accepted one warm 1.5B AWQ replica on single-node k3s. Phase 4A
+accepted Prometheus scrape of one StatefulSet replica. 9B, Ray, KEDA, and
 scale-to-zero are **not claimed**.
 
 ## Setup (authoring)

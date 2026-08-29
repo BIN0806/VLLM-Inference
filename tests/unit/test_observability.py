@@ -32,6 +32,10 @@ def test_promql_contract_covers_required_series() -> None:
     assert "histogram_quantile" in blob
     contract = load_promql_contract()
     assert "queries" in contract
+    raw = (repo_root() / "infra" / "observability" / "promql" / "vllm-acceptance.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "_count" in raw and "sparse" in raw.lower()
 
 
 @pytest.mark.unit
