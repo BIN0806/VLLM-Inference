@@ -1,5 +1,9 @@
 # Vast.ai rental checklist (Phase 3 VM)
 
+> Historical/reproducibility checklist. Phase 3 and Phase 4 are complete and
+> their rentals were destroyed. A new rental requires a new explicit gate and
+> read-only preflight. See [Final project status](../project-status.md).
+
 Do **not** create or modify a Vast instance from this repository. Use this
 page in the Vast console before you spend money. Provider stays configurable;
 Vast is the first candidate. Phase 3 1.5B AWQ on k3s was accepted on one VM;

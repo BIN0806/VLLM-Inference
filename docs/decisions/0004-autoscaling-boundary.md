@@ -4,7 +4,7 @@
 
 Accepted for Phase 0. Phase 4B installed KEDA 2.20.2 and proved 1→2→1 on
 waiting-queue depth. Phase 4C installed HTTP Add-on 0.15.0 for a single-node
-lab scale-to-zero path. Production TLS/HA are not claimed.
+lab scale-to-zero path. Production TLS/HA remain future goals.
 
 ## Decision
 

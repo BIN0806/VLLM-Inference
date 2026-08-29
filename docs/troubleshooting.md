@@ -1,5 +1,9 @@
 # Troubleshooting
 
+The live rental is gone. These are reproducibility notes from the accepted
+gates. See [Final project status](project-status.md) for the completed claim
+matrix.
+
 ## CUDA or NVIDIA runtime not visible
 
 Expected on the macOS authoring workstation. GPU gates run over SSH on Linux NVIDIA hosts. `nvidia-smi` missing locally is SKIP for `authoring`, not PASS.
@@ -64,3 +68,33 @@ startup and returned HTTP 200, valid SSE, non-empty output, and `[DONE]`
 with `X-KEDA-HTTP-Cold-Start: true`. Client timeout must exceed the 420 s
 request budget. A 502/504 or a retried client is a failed cold-start, not a
 success. See `docs/runbooks/k3s-replicas-http.md`.
+
+## A second Ready pod receives no traffic
+
+`kubectl port-forward` may keep one long-lived connection path to one backend.
+It is not proof of ClusterIP load distribution. Use an in-cluster client
+against the ClusterIP Service, create a new connection per request, and verify
+per-pod success/token counters. The accepted addendum used `Connection: close`
+and observed a 55%/45% split.
+
+## TTFT p95 is greater than E2E p95
+
+That cannot describe the same request population because first token precedes
+completion. Check that both histogram queries use the same range and label
+set, then inspect `_count` and `_sum`. Sparse samples, coarse buckets, and
+short `rate()` windows can produce misleading independent quantiles. Treat
+such p95 values as scrape validation, not a latency comparison.
+
+## NVIDIA device-plugin patch removes required fields
+
+An overlay patch is not necessarily a valid standalone manifest. Apply the
+pinned full NVIDIA device-plugin manifest, then apply the intended
+RuntimeClass change as a JSON patch or through `kubectl apply -k`. Do not
+apply a strategic-merge fragment directly with `kubectl apply -f`.
+
+## Two autoscalers fight over the StatefulSet
+
+Exactly one HPA/ScaledObject may target `StatefulSet/vllm`. Replace the
+Prometheus ScaledObject before enabling the HTTP external-push ScaledObject.
+The HTTP add-on may have its own HPA for the interceptor Deployment; that is a
+different scale target.

@@ -1,5 +1,9 @@
 # Phase 4A status: StatefulSet replica + Prometheus scrape
 
+> Historical gate snapshot. Its “not tested” list is scoped to Phase 4A.
+> Phase 4B later proved 1→2→1 and Phase 4C proved 0→1→0. See
+> [Final project status](../project-status.md).
+
 Sanitized closeout for the Prometheus observability gate. No IP addresses, SSH
 ports, host keys, tokens, credentials, instance IDs, kubeconfigs, or raw
 cluster dumps are recorded here.
@@ -161,14 +165,12 @@ It is node-local disk, **not** provider-persistent storage. **Destroying the
 Vast VM deletes the PVCs and the model caches.** Do not describe these volumes
 as Vast persistent disks.
 
-## Not tested
+## Goals after the Phase 4A checkpoint
 
-The following were **not tested** in Phase 4A and are **not claimed**:
-
-- **Second replica** / `kubectl scale --replicas=2`
-- **KEDA** or any Horizontal Pod Autoscaler
-- **9B** (`vast-k3s-replica-9b` / `Qwen/Qwen3.5-9B`)
-- **Ray** / KubeRay
-- **Scale-to-zero** and the KEDA HTTP interceptor
-- Production TLS, Ingress, NodePort, or LoadBalancer
-- A statistically valid TTFT versus E2E latency study
+- Exercise the second replica (completed in Phase 4B).
+- Add KEDA/HPA scaling (completed in Phase 4B).
+- Add durable-front-door scale-to-zero (completed for 0→1→0 in Phase 4C).
+- Exercise 9B horizontal replicas on GPUs with sufficient TP=1 headroom.
+- Extend Ray/KubeRay across physical nodes.
+- Add production TLS, Ingress, authentication, and high availability.
+- Run a statistically valid latency/SLO study with a frozen workload.

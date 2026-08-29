@@ -6,7 +6,8 @@ Accepted for the Phase 4 design. Phase 4A Prometheus scrape and Phase 4B
 KEDA 1→2→1 are recorded in
 [k3s-replicas-prometheus-status.md](../runbooks/k3s-replicas-prometheus-status.md)
 and [k3s-replicas-keda-status.md](../runbooks/k3s-replicas-keda-status.md).
-Scale-to-zero remains unvalidated.
+Phase 4C later validated HTTP-interceptor 0→1→0; HTTP 0→2 and production
+TLS/HA remain unvalidated.
 
 ## Context
 
@@ -89,4 +90,4 @@ raw `/metrics` response.
 - Prometheus is capped and trimmed for the constrained host. Grafana,
   Alertmanager, and broad default rules are not part of Phase 4A.
 - Phase 4B proved KEDA 1→2→1 on this StatefulSet. Phase 4C uses a durable
-  HTTP interceptor for lab scale-to-zero; production TLS/HA are not claimed.
+  HTTP interceptor for lab scale-to-zero; production TLS/HA remain future goals.

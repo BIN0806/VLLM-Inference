@@ -1,5 +1,9 @@
 # Vast rental closeout (Phase 4 lab VM)
 
+> Final infrastructure lifecycle record. The project is complete and no live
+> rental, tunnel, vLLM listener, or VM-local cache is expected to remain. See
+> [Final project status](../project-status.md).
+
 Sanitized teardown of the single-node Phase 4 lab rental. No IP addresses,
 SSH ports, host keys, tokens, credentials, instance IDs, kubeconfigs, or raw
 cluster dumps are recorded here.
@@ -10,6 +14,17 @@ console), not repository tooling. This file records the sanitized result.
 **Phase 4A, 4B, and 4C remain GO.** Compose 1.5B on GPU 0 is GO
 ([compose-1.5b-status.md](compose-1.5b-status.md)). HTTP **0→2** was not
 tested.
+
+## Publication
+
+| Item | Result |
+|---|---|
+| Pull request | PR #4 merged to `main` |
+| Merge commit | `64643039b8e3ea8c417c980de3fe8e62426097ac` |
+| Annotated tag | `phase4-vast-k3s-2xa4000-keda-http-pass` |
+| Merge CI | success, run `33234824669` |
+| Final local unit suite | 131 passed |
+| Additional local checks | Ruff, authoring preflight, Kubernetes renders, Phase 3/4/4C acceptance, HTTP add-on 0.15.0 Helm render |
 
 ## Final Kubernetes / KEDA inventory (before k3s stop)
 

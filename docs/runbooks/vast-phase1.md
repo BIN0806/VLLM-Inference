@@ -1,5 +1,9 @@
 # Vast Phase 1 runbook (client path)
 
+> Historical/reproducibility runbook. Phase 1 passed and the rental was later
+> destroyed. See [Final project status](../project-status.md) for the final
+> system rather than treating this page as a request to start infrastructure.
+
 Use this after the remote vLLM process has **finished loading**. Do not interrupt load.
 
 ## 1. Connection

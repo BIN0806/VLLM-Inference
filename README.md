@@ -1,115 +1,120 @@
 # Distributed vLLM inference platform
 
-Inference serving only. This repository does not contain training, fine-tuning,
-dataset, gradient, optimizer, or checkpoint-training code.
+Serving-only GPU inference platform built with vLLM, Ray, Docker Compose,
+Kubernetes, Prometheus, and KEDA. The scoped lab project is **complete** and
+the final Vast.ai rental has been destroyed.
 
-Secrets, live SSH hosts, API keys, private keys, and `.env.local` are never
-committed. Copy `.env.example` to gitignored `.env.local` on the authoring
-machine.
+This repository contains no training, fine-tuning, dataset, gradient,
+optimizer, or checkpoint-training code.
 
-## Documentation map
+## What was proven
 
-- [Architecture](docs/architecture.md) — topology and scaling boundaries.
-- [Architecture decisions](docs/decisions/README.md) — decisions, alternatives,
-  evidence, and consequences.
+| Capability | Live evidence | Status |
+|---|---|---|
+| OpenAI-compatible streaming | Concurrent raw SSE validation with non-empty output and `data: [DONE]` | Proven |
+| Single-GPU vLLM | 9B on RTX 3090; repository Compose path with 1.5B AWQ on RTX A4000 | Proven |
+| Tensor parallelism | Qwen3.5-9B, TP=2, two RTX 3060 12 GiB GPUs | Proven |
+| Ray execution | Same-host Ray placement group and two TP workers | Proven on one host |
+| Kubernetes GPU serving | k3s, NVIDIA RuntimeClass/device plugin, probes, ClusterIP, PVC cache | Proven on one node |
+| Prometheus observability | ServiceMonitor scrape, token counters, queue/KV/latency series | Proven |
+| Horizontal autoscaling | KEDA Prometheus scaler, complete replicas, 1→2→1 | Proven |
+| Load distribution | ClusterIP traffic split 55%/45%; aggregate throughput about doubled | Proven |
+| Scale-to-zero | KEDA HTTP interceptor held one request through 0→1 and later returned 1→0 | Proven as a constrained lab gate |
+| Safe teardown | Tunnels, k3s, Compose, GPU processes, and rental stopped in order | Proven |
+
+The final accepted tag is
+`phase4-vast-k3s-2xa4000-keda-http-pass`. The evidence and exact claim
+boundaries are summarized in [Project status](docs/project-status.md).
+
+## Final architecture
+
+```text
+client (SSH-tunneled loopback in the lab)
+  -> KEDA HTTP interceptor (durable at zero replicas)
+    -> ClusterIP Service
+      -> vLLM replica 0 -> GPU 0 -> ordinal PVC
+      -> vLLM replica 1 -> GPU 1 -> ordinal PVC
+
+Prometheus <- ServiceMonitor <- each Ready vLLM replica
+KEDA 1→2   <- sum(vllm:num_requests_waiting)
+KEDA 0→1   <- interceptor request concurrency
+```
+
+Tensor parallelism and Ray workers form **one complete model replica**.
+Kubernetes and KEDA add or remove **whole replicas**; they never scale one TP
+rank independently. vLLM metrics disappear at zero replicas, which is why the
+0→1 path requires a durable HTTP interceptor.
+
+## Results worth reading correctly
+
+- Phase 1, RTX 3090, 9B: 90/90 requests, about 90 output tokens/s, TTFT
+  p50/p95 about 2.1/4.2 s.
+- Phase 2A, 2× RTX 3060, 9B TP=2 with native multiprocessing: 10/10 SSE and
+  about 17.13 output tokens/s.
+- Phase 2B, identical Phase 2 host and contract with same-host Ray: about
+  18.26 output tokens/s. This one run does not prove Ray is generally faster.
+- Phase 4B, 1.5B AWQ replicas: ClusterIP success rate increased from about
+  1.03 to 2.03 requests/s when the second replica became Ready.
+- Phase 4C: one non-retried request was held for about 152 s while the
+  StatefulSet woke from zero, then returned HTTP 200, valid SSE, non-empty
+  output, and `[DONE]`.
+
+Runs on different GPU models are not topology speedup comparisons. The
+5,000-output-token/s remains a future performance goal that requires a frozen
+workload and suitable hardware.
+
+## Documentation
+
+- [Project status](docs/project-status.md) — final capability and evidence
+  matrix, phase history, lessons, and remaining limits.
+- [Feature pathway](docs/feature-pathway.md) — staged progression from offline
+  authoring to Compose, multi-GPU, Kubernetes, autoscaling, and production
+  goals.
+- [Personal use](docs/personal-use.md) — cost-conscious single-GPU workflow,
+  project ideas, client access, and shutdown.
+- [Architecture](docs/architecture.md) — components, request paths, scaling
+  boundaries, storage, and lifecycle.
+- [Operations](docs/operations.md) — validation order, runbooks, and safe
+  teardown.
 - [Benchmark contract](docs/benchmark-contract.md) — workload and measurement
   rules.
-- [Operations](docs/operations.md) — approved runbooks and current gates.
-- [Security](docs/security.md) — credential, transport, and ephemeral-host
-  boundaries.
+- [Architecture decisions](docs/decisions/README.md) — alternatives,
+  tradeoffs, evidence, and consequences.
+- [Security](docs/security.md) — transport, credential, host-key, and
+  ephemeral-infrastructure boundaries.
+- [Troubleshooting](docs/troubleshooting.md) — failures encountered and safe
+  fixes.
 
-## Roles
+Historical phase reports remain accurate to the gate in which they were
+captured. A statement such as “KEDA was not installed” in the Phase 3 report
+describes Phase 3, not the final project.
 
-| Role | What it is | What it is not |
-|---|---|---|
-| Authoring workstation | Docs, lint, unit tests, API client | CUDA / vLLM GPU execution |
-| Compute `single-gpu` | One complete replica on one GPU | A provider name |
-| Provider `vast` | Connection overlay for a rental | Hard-coded IPs or GPU SKUs |
-| Tensor parallelism | One replica sharded across GPUs | Horizontal request scaling |
-| Independent replicas | One replica per GPU for throughput | The same thing as TP |
-| Kubernetes `k8s-replica` | One complete pod per replica, min=1 | Phase 3 1.5B AWQ on k3s accepted |
-| Kubernetes `k8s-replicas` | StatefulSet, one GPU per pod, max=2 | Phase 4C HTTP interceptor lab; Phase 4B 1→2→1 historical |
-| Scale-to-zero | Lab path behind KEDA HTTP Add-on 0.15.0 | Something vLLM metrics can do alone; not HTTP 0→2 or production serverless |
+## Authoring setup
 
-Tensor parallelism and pipeline parallelism build **one complete model replica**.
-KEDA adds or removes **whole replicas**. Scaling a single TP rank or Ray
-worker would break the replica.
-
-vLLM Prometheus metrics disappear when no replica exists. Scale-to-zero therefore
-needs a durable front door such as the KEDA HTTP Add-on interceptor.
-
-## Phase 0 status
-
-Phase 0 freezes versions, configuration layers, preflight, and the benchmark
-contract.
-
-Current portable baseline (temporary rental, not a project-wide default):
-
-- Provider: `vast`
-- Compute profile: `single-gpu` for Phase 1/2; `k8s-replica` on k3s for Phase 3; `k8s-replicas` for Phase 4A
-- Portable baseline model: `Qwen/Qwen2.5-1.5B-Instruct-AWQ` @ `3ecffa0ceb27851800f45519bab9c457a04405e1`
-- Phase 2 override: `Qwen/Qwen3.5-9B` @ `c202236235762e1c871ad0ccb60c8ee5ba337b9a` (not used in Phase 3)
-- vLLM: `0.27.1` with official image digest recorded in `configs/pins.yaml`
-
-Phase 3 accepted one warm 1.5B AWQ replica on single-node k3s. Phase 4A
-accepted Prometheus scrape of one StatefulSet replica. Phase 4B accepted
-Prometheus-driven KEDA **1→2→1**. Phase 4C accepted interceptor-driven lab
-**0→1** (one non-retried held request, 150 s Ready, HTTP 200 SSE) and a
-normal second **1→0** (~327 s). HTTP **0→2**, 9B autoscaling, Ray,
-production TLS/HA, and managed Kubernetes are **not claimed**. Repository
-Docker Compose served one 1.5B AWQ container on GPU 0 over SSH-tunneled
-loopback after k3s stopped; see
-[compose-1.5b-status.md](docs/runbooks/compose-1.5b-status.md).
-
-## Setup (authoring)
+The macOS workstation is for configuration, linting, unit tests, rendering,
+and clients. It cannot pass an NVIDIA CUDA gate.
 
 ```bash
-cp .env.example .env.local   # then fill GPU_SSH_* and VLLM_* (never commit)
+cp .env.example .env.local
 uv sync --python 3.12 --extra dev
 make lint
 make test-unit
 make preflight PROFILE=authoring
 ```
 
-Python 3.12 is required for tooling. Python 3.14 on the Mac is not used.
+Live GPU gates require a Linux NVIDIA host. Connection details belong only in
+gitignored `.env.local` and `.ssh/known_hosts`. Published development ports
+bind to `127.0.0.1`; remote access uses SSH forwarding unless a future
+deployment adds verified HTTPS and authentication.
 
-## Phase 1 (after vLLM is ready)
+Run `make help` for the available offline, Compose, remote-preflight, and
+acceptance targets. Do not run live infrastructure targets without first
+reviewing the corresponding runbook and hardware preflight.
 
-Do not interrupt a loading vLLM process. When the user reports that startup
-finished:
+## Goals
 
-1. `EXPECTED_FINGERPRINT=SHA256:... make ssh-scan-host` (or `CONFIRM=yes` after
-   comparing the printed fingerprint out of band). This writes
-   `.ssh/known_hosts` in the repo, not `~/.ssh/known_hosts`.
-2. `make tunnel` (localhost:8000 → remote 127.0.0.1:18000)
-3. `RUN_PHASE1=1 make test-phase1`
-4. `make benchmark-phase1`
-
-Compose interpolation requires `COMPOSE_ENV_FILE` (default `.env.local`). Service
-`env_file:` does not supply `${VAR}` values. Published ports bind to `127.0.0.1`
-by default. `VLLM_API_KEY` does not protect every vLLM endpoint; the Vast portal
-authenticated reverse proxy is the current external boundary. SSH-tunneled tests
-skip that proxy and may omit the key. The client refuses to send
-`VLLM_API_KEY` or `OPEN_BUTTON_TOKEN` to a non-loopback `http://` URL unless
-`ALLOW_INSECURE_REMOTE_HTTP=true` (lab-only, default false). Never put the key
-in YAML, Git, or reports. Phase 2 should use an SSH tunnel unless HTTPS is
-configured.
-
-## Configuration layers
-
-See `configs/README.md`. Changing a Vast rental should normally require only
-provider/connection and hardware values in `.env.local`.
-
-## Later phases (not claimed)
-
-Tracked Phase 3–4C runbooks live under `docs/runbooks/`. Infra operator
-READMEs stay gitignored placeholders. Do not claim multi-node Ray, managed
-Kubernetes, production TLS/HA, HTTP 0→2, 9B autoscaling, or 5,000 output
-tokens/s. Do not rent or install a later gate from this repository until
-that gate is approved.
-
-## Commands
-
-Run `make help`. Teardown and sync targets use explicit compose project names
-and rsync excludes. They do not delete unrelated user resources. Remote sync
-and remote preflight refuse to run until `INFERENCE_ALLOW_REMOTE=1`.
+Training and fine-tuning remain intentionally outside this serving-only
+project. Optional goals are multi-node Ray/KubeRay, managed EKS/GKE,
+production TLS and interceptor high availability, interceptor-driven 0→2, 9B
+autoscaling, and a measured 5,000 output tokens/s. These are extensions rather
+than incomplete requirements of the finished lab.
