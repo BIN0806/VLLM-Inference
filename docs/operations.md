@@ -1,5 +1,6 @@
 # Operations
 
+- Architecture decisions: [decisions/README.md](decisions/README.md)
 - Authoring setup: `make setup`, `make lint`, `make test-unit`, `make preflight`
 - Vast Phase 1 client path: `docs/runbooks/vast-phase1.md`
 - Phase 3 (accepted 1.5B AWQ on k3s): [k3s-replica-1.5b-status.md](runbooks/k3s-replica-1.5b-status.md), [vast-k3s-rental.md](runbooks/vast-k3s-rental.md), [k3s-nvidia.md](runbooks/k3s-nvidia.md), [k3s-acceptance.md](runbooks/k3s-acceptance.md)

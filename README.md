@@ -7,6 +7,17 @@ Secrets, live SSH hosts, API keys, private keys, and `.env.local` are never
 committed. Copy `.env.example` to gitignored `.env.local` on the authoring
 machine.
 
+## Documentation map
+
+- [Architecture](docs/architecture.md) — topology and scaling boundaries.
+- [Architecture decisions](docs/decisions/README.md) — decisions, alternatives,
+  evidence, and consequences.
+- [Benchmark contract](docs/benchmark-contract.md) — workload and measurement
+  rules.
+- [Operations](docs/operations.md) — approved runbooks and current gates.
+- [Security](docs/security.md) — credential, transport, and ephemeral-host
+  boundaries.
+
 ## Roles
 
 | Role | What it is | What it is not |
