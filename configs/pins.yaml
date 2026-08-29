@@ -63,7 +63,7 @@ charts_and_operators:
   nvidia_container_toolkit_source: "https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html"
   helm: "v3.16.4"
   helm_install_script: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
-  status: "k3s and NVIDIA device plugin accepted in Phase 3. Prometheus chart used in Phase 4A. KEDA not installed."
+  status: "k3s, NVIDIA device plugin, Prometheus scrape, and KEDA 2.20.2 1→2→1 accepted. HTTP add-on and scale-to-zero not installed."
 
 k3s:
   version: "v1.34.10+k3s1"

@@ -92,10 +92,14 @@ def test_model_layer_yaml_is_tracked() -> None:
         "infra/kubernetes/overlays/vast-k3s-replicas/servicemonitor.yaml",
         "infra/observability/kube-prometheus-stack-values.yaml",
         "infra/observability/promql/vllm-acceptance.yaml",
+        "infra/keda/scaledobject-vllm.yaml",
         "docs/runbooks/vast-k3s-rental.md",
         "docs/runbooks/k3s-nvidia.md",
         "docs/runbooks/k3s-replicas-prometheus.md",
         "docs/runbooks/k3s-replicas-prometheus-status.md",
+        "docs/runbooks/k3s-replicas-keda.md",
+        "docs/runbooks/k3s-replicas-keda-status.md",
+        "docs/decisions/0008-phase4b-keda-waiting-queue.md",
         "docs/runbooks/k3s-nvidia.md",
         "docs/decisions/0006-phase3-1.5b-disk-exception.md",
         "docs/runbooks/k3s-replica-1.5b-status.md",
@@ -131,6 +135,23 @@ def test_k3s_replicas_prometheus_status_records_latency_caveat() -> None:
     assert "not" in text.lower() and "public" in text.lower()
     assert "ClusterIP-only" not in text
     for topic in ("9B", "Ray", "KEDA", "scale-to-zero"):
+        assert topic in text
+    assert "not tested" in text.lower()
+
+
+@pytest.mark.unit
+def test_k3s_replicas_keda_status_records_value_metric_and_boundary() -> None:
+    text = (repo_root() / "docs/runbooks/k3s-replicas-keda-status.md").read_text(encoding="utf-8")
+    assert "metricType: Value" in text
+    assert "sum(vllm:num_requests_waiting)" in text
+    assert "ignoreNullValues" in text
+    assert "StatefulSet" in text
+    assert "minReplicaCount: 1" in text
+    assert "HTTP add-on" in text
+    assert "not installed" in text.lower()
+    assert "local-path" in text
+    assert "die with the VM" in text
+    for topic in ("9B", "scale-to-zero"):
         assert topic in text
     assert "not tested" in text.lower()
 

@@ -21,8 +21,8 @@ Pin exact versions or immutable digests. Never commit `latest`. Record the offic
 | kubernetes (optional extra) | 36.0.3 | PyPI | Pin for later |
 | KubeRay | 1.7.0 | GitHub | Later |
 | kube-prometheus-stack | chart 88.6.0 | prometheus-community | Phase 4A scrape (Grafana/Alertmanager off) |
-| KEDA | 2.20.2 | kedacore/charts | Later |
-| KEDA HTTP Add-on | 0.15.0 | kedacore/http-add-on | Later |
+| KEDA | 2.20.2 | kedacore/charts | Phase 4B StatefulSet 1→2→1 |
+| KEDA HTTP Add-on | 0.15.0 | kedacore/http-add-on | Later scale-to-zero |
 | NVIDIA device plugin | 0.20.0 | NVIDIA/k8s-device-plugin | Phase 3/4 cluster GPU advertise |
 | NVIDIA Container Toolkit | 1.18.0-1 | NVIDIA libnvidia-container apt | Phase 4A k3s NVIDIA runtime |
 | Helm | v3.16.4 | get-helm-3 | Phase 4A chart install |

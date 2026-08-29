@@ -91,7 +91,7 @@ def test_vast_k3s_replicas_is_stateful_1_5b(monkeypatch: pytest.MonkeyPatch) -> 
     assert config.k8s_cpu_limit_value() == "4"
     assert config.k8s_shm_size_value() == "2Gi"
     assert config.profile.disk_exception is None
-    assert config.compute.scaler == "none"
+    assert config.compute.scaler == "keda-prometheus"
     assert config.compute.horizontal_scaling is True
 
 

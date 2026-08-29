@@ -2,10 +2,11 @@
 
 ## Status
 
-Accepted for the Phase 4 design. Phase 4A live Prometheus scrape is recorded in
+Accepted for the Phase 4 design. Phase 4A Prometheus scrape and Phase 4B
+KEDA 1→2→1 are recorded in
 [k3s-replicas-prometheus-status.md](../runbooks/k3s-replicas-prometheus-status.md)
-(**GO**, one replica). The later KEDA 1→2 gate remains unvalidated until its
-tracked status report says GO.
+and [k3s-replicas-keda-status.md](../runbooks/k3s-replicas-keda-status.md).
+Scale-to-zero remains unvalidated.
 
 ## Context
 
@@ -87,5 +88,4 @@ raw `/metrics` response.
   assuming Deployment-like behavior.
 - Prometheus is capped and trimmed for the constrained host. Grafana,
   Alertmanager, and broad default rules are not part of Phase 4A.
-- KEDA, two live replicas, and scale-to-zero are not claimed by accepting this
-  design alone.
+- Phase 4B proved KEDA 1→2→1 on this StatefulSet. Scale-to-zero is not claimed.

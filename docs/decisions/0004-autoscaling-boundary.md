@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted for Phase 0. Phase 4A installed Prometheus scrape of one warm
-replica. KEDA 1→2 and scale-to-zero stay later.
+Accepted for Phase 0. Phase 4B installed KEDA 2.20.2 and proved 1→2→1 on
+waiting-queue depth. Scale-to-zero stays later.
 
 ## Decision
 
@@ -17,5 +17,6 @@ Combining KEDA with complete multi-node Ray replicas needs a later controller an
 
 ## Consequences
 
-Phase 0 records the boundary. Phase 4A added Prometheus scrape of one warm
-replica. Do not install KEDA until a later approved gate.
+Phase 0 records the boundary. Phase 4B proved KEDA 1→2→1 on aggregated
+waiting depth with min replicas 1. Do not attempt scale-to-zero until a
+durable HTTP interceptor is approved.

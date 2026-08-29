@@ -26,7 +26,7 @@ Clients
 | macOS authoring workstation | Docs, lint, unit tests, HTTP client | Not applicable |
 | Provider overlay + compute profile (currently `vast` + `single-gpu`) | Real CUDA/vLLM validation over SSH | Required, remote |
 | `k8s-replica` | First Kubernetes MVP, minReplicas=1 | Phase 3 1.5B AWQ on k3s accepted |
-| `k8s-replicas` | Two-replica-capable StatefulSet, one GPU per pod | Phase 4A: one replica + Prometheus scrape accepted; KEDA not installed |
+| `k8s-replicas` | Two-replica-capable StatefulSet, one GPU per pod | Phase 4B: KEDA 1→2→1 accepted; scale-to-zero not installed |
 | `k8s-replica-zero` | Later scale-to-zero | Requires durable interceptor |
 | `ray-multinode` | True multi-node | `NOT RUN — HARDWARE UNAVAILABLE` |
 
